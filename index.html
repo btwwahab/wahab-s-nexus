@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="favi.png">
+    <title>Wahab's Nexus  - Advanced AI Assistant</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="particle-container">
+        <div id="particles"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Mobile Menu Toggle -->
+        <div class="mobile-menu-toggle">
+            <button id="menu-toggle-btn" aria-label="Toggle Menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <!-- Side Panel -->
+        <aside class="side-panel" id="side-panel">
+            <div class="brand">
+                <div class="logo-container">
+                    <div class="ai-logo">
+                        <div class="logo-ring"></div>
+                        <div class="logo-core"></div>
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>Wahab's Nexus
+                    </h3>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <div class="menu-item active" data-tab="conversations"  id="new-chat-button">
+                    <div class="menu-icon"><i class="fas fa-comment-alt"></i></div>
+                    <span>Chat</span>
+                </div>
+                <div class="menu-item" data-tab="personality" data-tooltip="AI Personality">
+                    <div class="menu-icon"><i class="fas fa-robot"></i></div>
+                    <span>Personality</span>
+                </div>
+                <div class="menu-item" data-tab="library" data-tooltip="Conversation History">
+                    <div class="menu-icon"><i class="fas fa-history"></i></div>
+                    <span>History</span>
+                </div>
+                <div class="menu-item" data-tab="profile" data-tooltip="App Settings">
+                    <div class="menu-icon"><i class="fas fa-user-cog"></i></div>
+                    <span>Settings</span>
+                </div>
+            </nav>
+            
+            <div class="theme-toggle">
+                <div class="toggle-option active" id="dark-theme">
+                    <i class="fas fa-moon"></i>
+                    <span>Dark</span>
+                </div>
+                <div class="toggle-option" id="light-theme">
+                    <i class="fas fa-sun"></i>
+                    <span>Light</span>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="content-area" id="content-area">
+            <!-- Chat Tab Content -->
+            <div class="tab-content active" id="conversations-content">
+                <header class="content-header">
+                    <div class="section-title">New Conversation</div>
+                    <div class="header-actions">
+                        <button class="action-btn primary-btn" data-tooltip="New Conversation" id="create-new-chat-btn">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="action-btn" data-tooltip="Rename" id="rename-btn">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="action-btn" data-tooltip="Export" id="export-btn">
+                            <i class="fas fa-file-export"></i>
+                        </button>
+                        <button class="action-btn" data-tooltip="Options" id="options-btn">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="chat-container">
+                    <div class="ai-background">
+                        <div class="circuit-lines"></div>
+                        <div class="data-particles"></div>
+                        <div class="glow-effect"></div>
+                    </div>
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- Messages will be dynamically inserted here -->
+                    </div>
+                    
+                    <div class="chat-input-wrapper">
+                        <div class="input-container">
+                            <textarea id="chat-input" placeholder="Type your message..." rows="1"></textarea>
+                            <div class="input-actions">
+                                <button class="input-action-btn" id="attach-file" title="Attach file">
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                                <button class="input-action-btn" id="voice-input" title="Voice input">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                                <button class="send-btn" id="send-button" title="Send message">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="input-suggestions">
+                            <div class="suggestion-chip">Explain quantum computing</div>
+                            <div class="suggestion-chip">Summarize this article</div>
+                            <div class="suggestion-chip">Write a poem about nature</div>
+                            <div class="suggestion-chip">Help debug my code</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Personality Tab Content -->
+            <div class="tab-content" id="personality-content">
+                <header class="content-header">
+                    <div class="section-title">AI Personality</div>
+                    <div class="header-actions">
+                        <button class="action-btn" id="save-personality" title="Save">
+                            <i class="fas fa-save"></i>
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="personality-container">
+                    <div class="section-intro">
+                        <h3>Choose AI Personality</h3>
+                        <p>Select how you want the AI to respond and assist you.</p>
+                    </div>
+                    
+                    <div class="personality-grid">
+                        <div class="personality-card active" data-personality="assistant">
+                            <div class="personality-icon"><i class="fas fa-user-tie"></i></div>
+                            <h4>Professional Assistant</h4>
+                            <p>Helpful, concise and formal responses focused on productivity.</p>
+                        </div>
+                        <div class="personality-card" data-personality="developer">
+                            <div class="personality-icon"><i class="fas fa-code"></i></div>
+                            <h4>Developer Mode</h4>
+                            <p>Technical responses with code examples and debugging help.</p>
+                        </div>
+                        <div class="personality-card" data-personality="teacher">
+                            <div class="personality-icon"><i class="fas fa-graduation-cap"></i></div>
+                            <h4>Educator</h4>
+                            <p>Explains concepts thoroughly with examples and analogies.</p>
+                        </div>
+                        <div class="personality-card" data-personality="creative">
+                            <div class="personality-icon"><i class="fas fa-paint-brush"></i></div>
+                            <h4>Creative Partner</h4>
+                            <p>Imaginative, inspiring responses for creative projects.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="custom-personality">
+                        <h4>Custom Instructions</h4>
+                        <textarea id="custom-instructions" placeholder="Add custom instructions for the AI (e.g., 'Speak like a pirate' or 'Keep answers under 100 words')"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Library/History Tab Content -->
+            <div class="tab-content" id="library-content">
+                <header class="content-header">
+                    <div class="section-title">Conversation History</div>
+                    <div class="header-actions">
+                        <button class="action-btn" title="Search">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button class="action-btn" title="Clear All">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="history-container" id="history-container">
+                    <!-- Will be populated with conversation history -->
+                </div>
+            </div>
+            
+            <!-- Settings Tab Content -->
+            <div class="tab-content" id="profile-content">
+                <header class="content-header">
+                    <div class="section-title">Settings</div>
+                    <div class="header-actions">
+                        <button class="action-btn" id="reset-settings" title="Reset">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h4><i class="fas fa-shield-alt"></i> Privacy</h4>
+                        <div class="toggle-setting">
+                            <span>Save conversation history</span>
+                            <div class="toggle-switch active" id="history-toggle"></div>
+                        </div>
+                        <div class="toggle-setting">
+                            <span>Allow anonymous data collection</span>
+                            <div class="toggle-switch" id="usage-toggle"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay" id="modal-overlay"></div>
+    
+    <!-- Rename Conversation Modal -->
+    <div class="modal" id="rename-modal">
+        <div class="modal-header">
+            <h4>Rename Conversation</h4>
+            <button class="modal-close" id="rename-modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="rename-input" placeholder="Enter conversation name" class="modal-input">
+        </div>
+        <div class="modal-footer">
+            <button class="secondary-btn" id="rename-cancel">Cancel</button>
+            <button class="primary-btn" id="rename-save">Save</button>
+        </div>
+    </div>
+    
+    <!-- Options Modal -->
+    <div class="modal" id="options-modal">
+        <div class="modal-header">
+            <h4>Options</h4>
+            <button class="modal-close" id="options-modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="options-list">
+                <!-- Add these two new option items -->
+                <div class="option-item" id="rename-option">
+                    <i class="fas fa-pencil-alt"></i>
+                    <span>Rename Conversation</span>
+                </div>
+                <div class="option-item" id="export-option">
+                    <i class="fas fa-file-export"></i>
+                    <span>Export Conversation</span>
+                </div>
+                <!-- Existing delete option -->
+                <div class="option-item danger" id="delete-conversation">
+                    <i class="fas fa-trash"></i>
+                    <span>Delete Conversation</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notifications -->
+    <div class="notification-container" id="notification-container"></div>
+
+    <!-- Typing Indicator Template -->
+    <template id="typing-indicator-template">
+        <div class="message assistant typing" id="typing-indicator">
+            <div class="message-content">
+                <div class="message-bubble">
+                    <div class="typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="script.js"></script>
+</body>
+</html>
