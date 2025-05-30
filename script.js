@@ -368,15 +368,15 @@ document.addEventListener('DOMContentLoaded', function () {
             localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, conversationId);
         }
 
-// Change this in loadConversation function:
-const conversationsTab = document.getElementById('conversations-content');
-if (conversationsTab) {
-    elements.menuItems.forEach(mi => mi.classList.remove('active'));
-    // Change this line that's causing the error:
-    document.querySelector('.menu-item[data-tab="conversations"]').classList.add('active');
-    elements.tabContents.forEach(content => content.classList.remove('active'));
-    conversationsTab.classList.add('active');
-}
+        // Change this in loadConversation function:
+        const conversationsTab = document.getElementById('conversations-content');
+        if (conversationsTab) {
+            elements.menuItems.forEach(mi => mi.classList.remove('active'));
+            // Change this line that's causing the error:
+            document.querySelector('.menu-item[data-tab="conversations"]').classList.add('active');
+            elements.tabContents.forEach(content => content.classList.remove('active'));
+            conversationsTab.classList.add('active');
+        }
     }
 
     /**
@@ -759,7 +759,7 @@ if (conversationsTab) {
 
         const personalityResponses = {
             'assistant': "As your professional assistant, I can provide a clear and concise answer to your inquiry.",
-            'developer': "Looking at this from a technical perspective, let me explain with some code examples.",
+            'fetchBotResponsedeveloper': "Looking at this from a technical perspective, let me explain with some code examples.",
             'teacher': "Let me explain this concept in a way that's easy to understand with some helpful examples.",
             'creative': "That sparks some interesting ideas! Here's a creative approach to what you're asking about."
         };
@@ -775,20 +775,8 @@ if (conversationsTab) {
      * @param {string} userMessage - User message
      */
     function fetchBotResponse(userMessage) {
-        const API_KEY = state.settings.apiKey || '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';
-        const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+        // Remove API key from client-side code
         const MODEL = state.settings.model || 'llama3-70b-8192';
-
-        // If API key is not properly configured, use fallback responses
-        if (!API_KEY || API_KEY === 'gsk_yourGroqApiKeyHere') {
-            setTimeout(() => {
-                processApiResponse({
-                    type: 'general',
-                    response: getGeneralResponse(userMessage)
-                });
-            }, 1500);
-            return;
-        }
 
         // Prepare system message based on personality
         const systemMessage = {
@@ -801,7 +789,7 @@ if (conversationsTab) {
             systemMessage.content += "\n\n" + state.personality.customInstructions;
         }
 
-        // Prepare messages array for the API request
+        // Prepare messages array
         const messages = [systemMessage, ...chatHistory];
 
         // Configuration for the request
@@ -813,65 +801,26 @@ if (conversationsTab) {
             top_p: 1
         };
 
-        // Make the API request
-        fetch(API_URL, {
+        // Call your serverless function instead of Groq API directly
+        fetch('/api/chat', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${API_KEY}`
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestData)
         })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`API Error: ${response.status} - ${response.statusText}`);
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                // Extract the response content
-                if (data?.choices?.[0]?.message?.content) {
-                    const responseText = data.choices[0].message.content;
-
-                    // Track token usage if available
-                    if (data.usage) {
-                        console.log(`Tokens used: ${data.usage.total_tokens} (Prompt: ${data.usage.prompt_tokens}, Completion: ${data.usage.completion_tokens})`);
-                    }
-
-                    // Process the successful response
-                    processApiResponse({
-                        type: 'groq',
-                        response: responseText
-                    });
-
-                    // Add the assistant's response to chat history for context
-                    chatHistory.push({
-                        role: 'assistant',
-                        content: responseText
-                    });
-                } else {
-                    throw new Error('Invalid response structure from Groq API');
-                }
+                // Process the response
+                processApiResponse({
+                    response: data.choices[0].message.content
+                });
             })
             .catch(error => {
-                console.error('Error fetching from Groq API:', error);
-
-                // Provide detailed error information for debugging
-                let errorMessage = `I'm sorry, but there was an error connecting to my services. `;
-
-                if (error.message.includes('API Error')) {
-                    errorMessage += `Error code: ${error.message}. Please check your API key and network connection.`;
-                } else if (error.message.includes('Invalid response')) {
-                    errorMessage += `The API returned an unexpected response format.`;
-                } else {
-                    errorMessage += `${error.message}. Please try again later.`;
-                }
-
-                // Fallback to error response
-                processApiResponse({
-                    type: 'error',
-                    response: errorMessage
-                });
+                // Handle errors
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessageToUI('assistant', getGeneralResponse(userMessage));
             });
     }
 
@@ -937,17 +886,17 @@ if (conversationsTab) {
      */
     function showNotification(message, type = 'info') {
         if (!message) return;
-        
+
         // Clear any existing notifications first
         const existingNotifications = elements.notificationContainer.querySelectorAll('.notification');
         existingNotifications.forEach(note => {
             note.classList.remove('show');
             setTimeout(() => note.remove(), 300);
         });
-    
+
         const notification = document.createElement('div');
         notification.className = 'notification';
-    
+
         let icon;
         switch (type) {
             case 'success': icon = 'fa-check-circle'; break;
@@ -955,22 +904,22 @@ if (conversationsTab) {
             case 'warning': icon = 'fa-exclamation-triangle'; break;
             default: icon = 'fa-info-circle';
         }
-    
+
         notification.innerHTML = `
             <div class="notification-icon">
                 <i class="fas ${icon}"></i>
             </div>
             <div class="notification-message">${message}</div>
         `;
-    
+
         elements.notificationContainer.appendChild(notification);
-    
+
         // Use requestAnimationFrame for smoother animations
         requestAnimationFrame(() => {
             // Trigger animation in the next frame
             setTimeout(() => notification.classList.add('show'), 10);
         });
-    
+
         // Auto remove after 3 seconds
         setTimeout(() => {
             notification.classList.remove('show');
@@ -1659,38 +1608,38 @@ if (conversationsTab) {
         });
 
         // Mobile options for rename and export
-document.getElementById('rename-option').addEventListener('click', () => {
-    // First close the options modal
-    elements.optionsModal.classList.remove('active');
-    setTimeout(() => {
-        elements.optionsModal.style.display = 'none';
-        elements.modalOverlay.style.display = 'none';
-    }, 300);
-    
-    // Then open the rename modal (reuse existing functionality)
-    setTimeout(() => {
-        elements.modalOverlay.style.display = 'block';
-        elements.renameModal.style.display = 'block';
-        elements.renameInput.value = state.activeConversationName;
-        setTimeout(() => elements.renameModal.classList.add('active'), 10);
-    }, 350);
-});
+        document.getElementById('rename-option').addEventListener('click', () => {
+            // First close the options modal
+            elements.optionsModal.classList.remove('active');
+            setTimeout(() => {
+                elements.optionsModal.style.display = 'none';
+                elements.modalOverlay.style.display = 'none';
+            }, 300);
 
-document.getElementById('export-option').addEventListener('click', () => {
-    // Close the options modal first
-    elements.optionsModal.classList.remove('active');
-    setTimeout(() => {
-        elements.optionsModal.style.display = 'none';
-        elements.modalOverlay.style.display = 'none';
-    }, 300);
-    
-    // Then trigger the export functionality (reuse existing functionality)
-    setTimeout(() => {
-        // This calls the same function as the regular export button
-        const exportEvent = new Event('click');
-        elements.exportBtn.dispatchEvent(exportEvent);
-    }, 350);
-});
+            // Then open the rename modal (reuse existing functionality)
+            setTimeout(() => {
+                elements.modalOverlay.style.display = 'block';
+                elements.renameModal.style.display = 'block';
+                elements.renameInput.value = state.activeConversationName;
+                setTimeout(() => elements.renameModal.classList.add('active'), 10);
+            }, 350);
+        });
+
+        document.getElementById('export-option').addEventListener('click', () => {
+            // Close the options modal first
+            elements.optionsModal.classList.remove('active');
+            setTimeout(() => {
+                elements.optionsModal.style.display = 'none';
+                elements.modalOverlay.style.display = 'none';
+            }, 300);
+
+            // Then trigger the export functionality (reuse existing functionality)
+            setTimeout(() => {
+                // This calls the same function as the regular export button
+                const exportEvent = new Event('click');
+                elements.exportBtn.dispatchEvent(exportEvent);
+            }, 350);
+        });
 
     }
 
