@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
             language: 'en-US',
             voiceOutput: 'none',
             apiKey: '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',
-            model: 'llama3-70b-8192',
+            model: 'llama-3.3-70b-versatile', // Updated from 'llama3-70b-8192'
             messageLimit: 50
         },
         personality: {
@@ -776,7 +776,9 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function fetchBotResponse(userMessage) {
         // Remove API key from client-side code
-        const MODEL = state.settings.model || 'llama3-70b-8192';
+        const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
+
+        const FALLBACK_MODELS = ['llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
 
         // Prepare system message based on personality
         const systemMessage = {
