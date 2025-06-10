@@ -67,7 +67,6 @@ document.addEventListener('DOMContentLoaded', function () {
             shareData: false,
             language: 'en-US',
             voiceOutput: 'none',
-           
             model: 'llama-3.3-70b-versatile',
             messageLimit: 50
         },
@@ -774,55 +773,101 @@ document.addEventListener('DOMContentLoaded', function () {
      * Fetch response from Groq API
      * @param {string} userMessage - User message
      */
-    function fetchBotResponse(userMessage) {
-        // Remove API key from client-side code
-        const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
+// ...existing code...
+function fetchBotResponse(userMessage) {
+    // Remove API key from client-side code
+    const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
-        // Prepare system message based on personality
-        const systemMessage = {
-            role: "system",
-            content: PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant']
-        };
+    const FALLBACK_MODELS = ['llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
 
-        // Add custom instructions if available
-        if (state.personality.customInstructions) {
-            systemMessage.content += "\n\n" + state.personality.customInstructions;
-        }
+    // Prepare system message based on personality
+    const systemMessage = {
+        role: "system",
+        content: PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant']
+    };
 
-        // Prepare messages array
-        const messages = [systemMessage, ...chatHistory];
-
-        // Configuration for the request
-        const requestData = {
-            model: MODEL,
-            messages: messages,
-            temperature: 0.7,
-            max_tokens: 800,
-            top_p: 1
-        };
-
-        // Call your serverless function instead of Groq API directly
-        fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        })
-            .then(response => response.json())
-            .then(data => {
-                // Process the response
-                processApiResponse({
-                    response: data.choices[0].message.content
-                });
-            })
-            .catch(error => {
-                // Handle errors
-                console.error('Error:', error);
-                removeTypingIndicator();
-                addMessageToUI('assistant', getGeneralResponse(userMessage));
-            });
+    // Add custom instructions if available
+    if (state.personality.customInstructions) {
+        systemMessage.content += "\n\n" + state.personality.customInstructions;
     }
+
+    // Prepare messages array
+    const messages = [systemMessage, ...chatHistory];
+
+    // Configuration for the request
+    const requestData = {
+        model: MODEL,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 800,
+        top_p: 1
+    };
+
+    console.log('Sending request to /api/chat...');
+
+    // Call your serverless function instead of Groq API directly
+    fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('API response:', data);
+        
+        // Check if the response has the expected structure
+        if (data.error) {
+            throw new Error(data.message || data.error);
+        }
+        
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            // Process the successful response
+            processApiResponse({
+                response: data.choices[0].message.content
+            });
+            
+            // Add to chat history for API context
+            chatHistory.push({
+                role: 'assistant',
+                content: data.choices[0].message.content
+            });
+        } else {
+            // Log the actual response structure for debugging
+            console.error('Unexpected response structure:', data);
+            throw new Error('Invalid response format from API');
+        }
+    })
+    .catch(error => {
+        // Handle errors
+        console.error('Fetch error:', error);
+        removeTypingIndicator();
+        
+        // Show error notification
+        showNotification(`API Error: ${error.message}`, 'error');
+        
+        // Use fallback response
+        const fallbackResponse = getGeneralResponse(userMessage);
+        addMessageToUI('assistant', fallbackResponse);
+        
+        // Add fallback response to chat history
+        chatHistory.push({
+            role: 'assistant',
+            content: fallbackResponse
+        });
+        
+        // Save fallback message to conversation
+        saveMessageToConversation('assistant', fallbackResponse);
+    });
+}
+// ...existing code...
 
     /**
      * Process API response and update UI
