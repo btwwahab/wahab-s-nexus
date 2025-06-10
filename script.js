@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function () {
             language: 'en-US',
             voiceOutput: 'none',
             apiKey: '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',
-            model: 'llama-3.3-70b-versatile', // Updated from 'llama3-70b-8192'
+            model: 'llama-3.3-70b-versatile',
             messageLimit: 50
         },
         personality: {
