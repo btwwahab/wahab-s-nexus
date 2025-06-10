@@ -778,8 +778,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Remove API key from client-side code
         const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
-        const FALLBACK_MODELS = ['llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
-
         // Prepare system message based on personality
         const systemMessage = {
             role: "system",
