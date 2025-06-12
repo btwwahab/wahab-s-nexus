@@ -773,12 +773,10 @@ document.addEventListener('DOMContentLoaded', function () {
      * Fetch response from Groq API
      * @param {string} userMessage - User message
      */
-// ...existing code...
-function fetchBotResponse(userMessage) {
-    // Remove API key from client-side code
-    const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
-    const FALLBACK_MODELS = ['llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+
+function fetchBotResponse(userMessage) {
+    const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
     // Prepare system message based on personality
     const systemMessage = {
@@ -805,7 +803,7 @@ function fetchBotResponse(userMessage) {
 
     console.log('Sending request to /api/chat...');
 
-    // Call your serverless function instead of Groq API directly
+    // Call your serverless function (NOT Groq directly)
     fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -816,58 +814,62 @@ function fetchBotResponse(userMessage) {
     .then(response => {
         console.log('Response status:', response.status);
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.text().then(text => {
+                console.error('API Error Response:', text);
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
         }
         return response.json();
     })
     .then(data => {
         console.log('API response:', data);
         
-        // Check if the response has the expected structure
         if (data.error) {
-            throw new Error(data.message || data.error);
+            throw new Error(data.error.message || data.error);
         }
         
         if (data.choices && data.choices[0] && data.choices[0].message) {
-            // Process the successful response
-            processApiResponse({
-                response: data.choices[0].message.content
-            });
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            const responseContent = data.choices[0].message.content;
+            
+            // Add response to UI
+            addMessageToUI('assistant', responseContent);
             
             // Add to chat history for API context
             chatHistory.push({
                 role: 'assistant',
-                content: data.choices[0].message.content
+                content: responseContent
             });
+            
+            // Save to conversation
+            saveMessageToConversation('assistant', responseContent);
         } else {
-            // Log the actual response structure for debugging
-            console.error('Unexpected response structure:', data);
             throw new Error('Invalid response format from API');
         }
     })
     .catch(error => {
-        // Handle errors
-        console.error('Fetch error:', error);
+        console.error('API Error:', error);
         removeTypingIndicator();
         
-        // Show error notification
-        showNotification(`API Error: ${error.message}`, 'error');
+        let errorMessage = error.message || 'Unknown error occurred';
+        showNotification(`API Error: ${errorMessage}`, 'error');
         
         // Use fallback response
         const fallbackResponse = getGeneralResponse(userMessage);
         addMessageToUI('assistant', fallbackResponse);
         
-        // Add fallback response to chat history
         chatHistory.push({
             role: 'assistant',
             content: fallbackResponse
         });
         
-        // Save fallback message to conversation
         saveMessageToConversation('assistant', fallbackResponse);
     });
 }
-// ...existing code...
+
+
 
     /**
      * Process API response and update UI
