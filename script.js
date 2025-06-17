@@ -454,181 +454,194 @@ document.addEventListener('DOMContentLoaded', function () {
  * @param {HTMLElement} speakerBtn - The speaker button element
  * @param {string} text - Text to speak
  */
-    async function handleTextToSpeech(speakerBtn, text) {
-        // Check if speech is currently active
-        if (speakerBtn.classList.contains('speaking')) {
-            // Stop current speech
-            window.speechSynthesis.cancel();
-            speakerBtn.classList.remove('speaking');
-            speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-            showNotification('Speech stopped', 'info');
+async function handleTextToSpeech(speakerBtn, text) {
+    // Check if speech is currently active for this specific button
+    if (speakerBtn.classList.contains('speaking')) {
+        // Stop current speech
+        window.speechSynthesis.cancel();
+        speakerBtn.classList.remove('speaking');
+        speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        showNotification('Speech stopped by user', 'info');
+        return;
+    }
+
+    // Check if text is valid
+    if (!text || text.trim().length === 0) {
+        showNotification('No text to read', 'warning');
+        return;
+    }
+
+    // Check if speech synthesis is supported
+    if (!window.speechSynthesis) {
+        showNotification('Text-to-speech not supported in your browser', 'error');
+        return;
+    }
+
+    // Stop any other active speech first
+    window.speechSynthesis.cancel();
+    
+    // Reset all other speaker buttons
+    document.querySelectorAll('.message-action-btn .fa-pause').forEach(btn => {
+        const speakerButton = btn.parentElement;
+        speakerButton.classList.remove('speaking');
+        speakerButton.innerHTML = '<i class="fas fa-volume-up"></i>';
+    });
+
+    showNotification('Preparing to read message aloud...', 'info');
+
+    try {
+        // Wait a moment for cancellation to complete
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Clean the text - remove HTML tags and fix common issues
+        const cleanText = text
+            .replace(/<[^>]*>/g, '') // Remove HTML tags
+            .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+            .replace(/&amp;/g, '&') // Replace HTML entities
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+            .trim();
+
+        if (!cleanText) {
+            showNotification('No readable text found', 'warning');
             return;
         }
 
-        // Check if text is valid
-        if (!text || text.trim().length === 0) {
-            showNotification('No text to read', 'warning');
-            return;
-        }
+        // Limit text length to prevent errors
+        const maxLength = 1000;
+        const textToSpeak = cleanText.length > maxLength ? 
+            cleanText.substring(0, maxLength) + '...' : cleanText;
 
-        // Check if speech synthesis is supported
-        if (!window.speechSynthesis) {
-            showNotification('Text-to-speech not supported in your browser', 'error');
-            return;
-        }
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
-        showNotification('Preparing to read message aloud...', 'info');
+        // Set basic properties
+        utterance.lang = 'en-US';
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
 
+        // Try to get a voice
         try {
-            // Cancel any ongoing speech first
-            window.speechSynthesis.cancel();
-
-            // Wait a brief moment for cancellation to complete
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // Clean the text - remove HTML tags and fix common issues
-            const cleanText = text
-                .replace(/<[^>]*>/g, '') // Remove HTML tags
-                .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
-                .replace(/&amp;/g, '&') // Replace HTML entities
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&quot;/g, '"')
-                .replace(/&#39;/g, "'")
-                .trim();
-
-            if (!cleanText) {
-                showNotification('No readable text found', 'warning');
-                return;
+            const voice = await getBestVoice('male');
+            if (voice) {
+                utterance.voice = voice;
             }
+        } catch (voiceError) {
+            console.warn('Could not set voice:', voiceError);
+        }
 
-            const utterance = new SpeechSynthesisUtterance(cleanText);
+        // Track this specific utterance
+        let isThisUtteranceActive = true;
+        let wasStoppedByUser = false;
 
-            // Set basic properties
-            utterance.lang = 'en-US';
-            utterance.rate = 0.9; // Slightly slower for better clarity
-            utterance.pitch = 1.0;
-            utterance.volume = 1.0;
-
-            // Try to get a voice
-            try {
-                const voice = await getBestVoice('male');
-                if (voice) {
-                    utterance.voice = voice;
-                }
-            } catch (voiceError) {
-                console.warn('Could not set voice:', voiceError);
-                // Continue without custom voice
-            }
-
-            // Set up event handlers
-            utterance.onstart = () => {
+        // Set up event handlers
+        utterance.onstart = () => {
+            if (isThisUtteranceActive) {
                 speakerBtn.classList.add('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
                 showNotification('Reading message aloud', 'info');
-            };
+            }
+        };
 
-            utterance.onerror = (event) => {
-                console.error('Speech synthesis error:', event);
+        utterance.onerror = (event) => {
+            console.error('Speech synthesis error:', event);
+            
+            // Only handle if this is still the active utterance
+            if (isThisUtteranceActive) {
                 speakerBtn.classList.remove('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-
-                let errorMessage = 'Error while reading message';
-                switch (event.error) {
-                    case 'network':
-                        errorMessage = 'Network error during speech';
-                        break;
-                    case 'synthesis-unavailable':
-                        errorMessage = 'Speech synthesis unavailable';
-                        break;
-                    case 'synthesis-failed':
-                        errorMessage = 'Speech synthesis failed';
-                        break;
-                    case 'audio-busy':
-                        errorMessage = 'Audio system is busy';
-                        break;
-                    case 'audio-hardware':
-                        errorMessage = 'Audio hardware error';
-                        break;
-                    case 'language-unavailable':
-                        errorMessage = 'Language not available for speech';
-                        break;
-                    case 'voice-unavailable':
-                        errorMessage = 'Selected voice unavailable';
-                        break;
-                    case 'text-too-long':
-                        errorMessage = 'Text too long for speech synthesis';
-                        break;
-                    case 'invalid-argument':
-                        errorMessage = 'Invalid text for speech synthesis';
-                        break;
-                    default:
-                        errorMessage = `Speech error: ${event.error}`;
+                
+                // Check if it was interrupted by user action
+                if (event.error === 'interrupted') {
+                    wasStoppedByUser = true;
+                    showNotification('Speech stopped by user', 'info');
+                } else {
+                    // Handle other errors
+                    let errorMessage = 'Error while reading message';
+                    switch (event.error) {
+                        case 'network':
+                            errorMessage = 'Network error during speech';
+                            break;
+                        case 'synthesis-unavailable':
+                            errorMessage = 'Speech synthesis unavailable';
+                            break;
+                        case 'synthesis-failed':
+                            errorMessage = 'Speech synthesis failed';
+                            break;
+                        case 'audio-busy':
+                            errorMessage = 'Audio system is busy';
+                            break;
+                        case 'audio-hardware':
+                            errorMessage = 'Audio hardware error';
+                            break;
+                        case 'language-unavailable':
+                            errorMessage = 'Language not available for speech';
+                            break;
+                        case 'voice-unavailable':
+                            errorMessage = 'Selected voice unavailable';
+                            break;
+                        case 'text-too-long':
+                            errorMessage = 'Text too long for speech synthesis';
+                            break;
+                        case 'invalid-argument':
+                            errorMessage = 'Invalid text for speech synthesis';
+                            break;
+                        default:
+                            errorMessage = `Speech error: ${event.error}`;
+                    }
+                    
+                    showNotification(errorMessage, 'error');
                 }
+            }
+            isThisUtteranceActive = false;
+        };
 
-                showNotification(errorMessage, 'error');
-            };
-
-            utterance.onend = () => {
+        utterance.onend = () => {
+            if (isThisUtteranceActive) {
                 speakerBtn.classList.remove('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-            };
+                
+                // Only show completion message if it wasn't stopped by user
+                if (!wasStoppedByUser) {
+                    showNotification('Finished reading message', 'success');
+                }
+            }
+            isThisUtteranceActive = false;
+        };
 
-            utterance.onpause = () => {
+        utterance.onpause = () => {
+            if (isThisUtteranceActive) {
                 speakerBtn.classList.remove('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-            };
+                showNotification('Speech paused', 'info');
+            }
+        };
 
-            utterance.onresume = () => {
+        utterance.onresume = () => {
+            if (isThisUtteranceActive) {
                 speakerBtn.classList.add('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
-            };
-
-            // Check if text is too long (some browsers have limits)
-            if (cleanText.length > 32767) {
-                // Split long text into chunks
-                const chunks = cleanText.match(/.{1,32000}/g) || [cleanText];
-                showNotification(`Reading message in ${chunks.length} parts...`, 'info');
-
-                // Speak first chunk
-                utterance.text = chunks[0];
-                window.speechSynthesis.speak(utterance);
-
-                // Handle additional chunks if needed
-                if (chunks.length > 1) {
-                    let currentChunk = 0;
-                    utterance.onend = () => {
-                        currentChunk++;
-                        if (currentChunk < chunks.length && speakerBtn.classList.contains('speaking')) {
-                            const nextUtterance = new SpeechSynthesisUtterance(chunks[currentChunk]);
-                            Object.assign(nextUtterance, {
-                                lang: utterance.lang,
-                                rate: utterance.rate,
-                                pitch: utterance.pitch,
-                                volume: utterance.volume,
-                                voice: utterance.voice
-                            });
-                            nextUtterance.onend = utterance.onend;
-                            nextUtterance.onerror = utterance.onerror;
-                            window.speechSynthesis.speak(nextUtterance);
-                        } else {
-                            speakerBtn.classList.remove('speaking');
-                            speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                        }
-                    };
-                }
-            } else {
-                // Speak normally for shorter text
-                window.speechSynthesis.speak(utterance);
+                showNotification('Speech resumed', 'info');
             }
+        };
 
-        } catch (error) {
-            console.error('Text-to-speech error:', error);
-            speakerBtn.classList.remove('speaking');
-            speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-            showNotification('Could not read message aloud', 'error');
-        }
+        // Store reference to this utterance on the button for cancellation
+        speakerBtn.currentUtterance = utterance;
+        speakerBtn.isUtteranceActive = () => isThisUtteranceActive;
+
+        // Speak the text
+        window.speechSynthesis.speak(utterance);
+
+    } catch (error) {
+        console.error('Text-to-speech error:', error);
+        speakerBtn.classList.remove('speaking');
+        speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        showNotification('Could not read message aloud', 'error');
     }
+}
 
     /**
      * Handle message editing
@@ -906,99 +919,99 @@ document.addEventListener('DOMContentLoaded', function () {
      */
 
 
-    function fetchBotResponse(userMessage) {
-        const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
+function fetchBotResponse(userMessage) {
+    const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
-        // Prepare system message based on personality
-        const systemMessage = {
-            role: "system",
-            content: PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant']
-        };
+    // Prepare system message based on personality
+    const systemMessage = {
+        role: "system",
+        content: PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant']
+    };
 
-        // Add custom instructions if available
-        if (state.personality.customInstructions) {
-            systemMessage.content += "\n\n" + state.personality.customInstructions;
-        }
-
-        // Prepare messages array
-        const messages = [systemMessage, ...chatHistory];
-
-        // Configuration for the request
-        const requestData = {
-            model: MODEL,
-            messages: messages,
-            temperature: 0.7,
-            max_tokens: 800,
-            top_p: 1
-        };
-
-        console.log('Sending request to /api/chat...');
-
-        // Call your serverless function (NOT Groq directly)
-        fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        })
-            .then(response => {
-                console.log('Response status:', response.status);
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        console.error('API Error Response:', text);
-                        throw new Error(`HTTP ${response.status}: ${text}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('API response:', data);
-
-                if (data.error) {
-                    throw new Error(data.error.message || data.error);
-                }
-
-                if (data.choices && data.choices[0] && data.choices[0].message) {
-                    // Remove typing indicator
-                    removeTypingIndicator();
-
-                    const responseContent = data.choices[0].message.content;
-
-                    // Add response to UI
-                    addMessageToUI('assistant', responseContent);
-
-                    // Add to chat history for API context
-                    chatHistory.push({
-                        role: 'assistant',
-                        content: responseContent
-                    });
-
-                    // Save to conversation
-                    saveMessageToConversation('assistant', responseContent);
-                } else {
-                    throw new Error('Invalid response format from API');
-                }
-            })
-            .catch(error => {
-                console.error('API Error:', error);
-                removeTypingIndicator();
-
-                let errorMessage = error.message || 'Unknown error occurred';
-                showNotification(`API Error: ${errorMessage}`, 'error');
-
-                // Use fallback response
-                const fallbackResponse = getGeneralResponse(userMessage);
-                addMessageToUI('assistant', fallbackResponse);
-
-                chatHistory.push({
-                    role: 'assistant',
-                    content: fallbackResponse
-                });
-
-                saveMessageToConversation('assistant', fallbackResponse);
-            });
+    // Add custom instructions if available
+    if (state.personality.customInstructions) {
+        systemMessage.content += "\n\n" + state.personality.customInstructions;
     }
+
+    // Prepare messages array
+    const messages = [systemMessage, ...chatHistory];
+
+    // Configuration for the request
+    const requestData = {
+        model: MODEL,
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 800,
+        top_p: 1
+    };
+
+    console.log('Sending request to /api/chat...');
+
+    // Call your serverless function (NOT Groq directly)
+    fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.text().then(text => {
+                console.error('API Error Response:', text);
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('API response:', data);
+        
+        if (data.error) {
+            throw new Error(data.error.message || data.error);
+        }
+        
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            // Remove typing indicator
+            removeTypingIndicator();
+            
+            const responseContent = data.choices[0].message.content;
+            
+            // Add response to UI
+            addMessageToUI('assistant', responseContent);
+            
+            // Add to chat history for API context
+            chatHistory.push({
+                role: 'assistant',
+                content: responseContent
+            });
+            
+            // Save to conversation
+            saveMessageToConversation('assistant', responseContent);
+        } else {
+            throw new Error('Invalid response format from API');
+        }
+    })
+    .catch(error => {
+        console.error('API Error:', error);
+        removeTypingIndicator();
+        
+        let errorMessage = error.message || 'Unknown error occurred';
+        showNotification(`API Error: ${errorMessage}`, 'error');
+        
+        // Use fallback response
+        const fallbackResponse = getGeneralResponse(userMessage);
+        addMessageToUI('assistant', fallbackResponse);
+        
+        chatHistory.push({
+            role: 'assistant',
+            content: fallbackResponse
+        });
+        
+        saveMessageToConversation('assistant', fallbackResponse);
+    });
+}
 
 
 
