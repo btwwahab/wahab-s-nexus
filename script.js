@@ -450,10 +450,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
-    * Handle text-to-speech functionality
-    * @param {HTMLElement} speakerBtn - The speaker button element
-    * @param {string} text - Text to speak
-    */
+ * Handle text-to-speech functionality
+ * @param {HTMLElement} speakerBtn - The speaker button element
+ * @param {string} text - Text to speak
+ */
     async function handleTextToSpeech(speakerBtn, text) {
         // Check if speech is currently active
         if (speakerBtn.classList.contains('speaking')) {
@@ -465,35 +465,108 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        // Check if text is valid
+        if (!text || text.trim().length === 0) {
+            showNotification('No text to read', 'warning');
+            return;
+        }
+
+        // Check if speech synthesis is supported
+        if (!window.speechSynthesis) {
+            showNotification('Text-to-speech not supported in your browser', 'error');
+            return;
+        }
+
         showNotification('Preparing to read message aloud...', 'info');
 
         try {
-            // Cancel any ongoing speech
+            // Cancel any ongoing speech first
             window.speechSynthesis.cancel();
 
-            const utterance = new SpeechSynthesisUtterance(text);
+            // Wait a brief moment for cancellation to complete
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-            // Get a voice
-            const voice = await getBestVoice('male');
-            if (voice) {
-                utterance.voice = voice;
+            // Clean the text - remove HTML tags and fix common issues
+            const cleanText = text
+                .replace(/<[^>]*>/g, '') // Remove HTML tags
+                .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+                .replace(/&amp;/g, '&') // Replace HTML entities
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .trim();
+
+            if (!cleanText) {
+                showNotification('No readable text found', 'warning');
+                return;
             }
 
-            // Set English as the default language
-            utterance.lang = 'en-US';
+            const utterance = new SpeechSynthesisUtterance(cleanText);
 
-            // Add event listeners for speech events
+            // Set basic properties
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9; // Slightly slower for better clarity
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            // Try to get a voice
+            try {
+                const voice = await getBestVoice('male');
+                if (voice) {
+                    utterance.voice = voice;
+                }
+            } catch (voiceError) {
+                console.warn('Could not set voice:', voiceError);
+                // Continue without custom voice
+            }
+
+            // Set up event handlers
             utterance.onstart = () => {
                 speakerBtn.classList.add('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
                 showNotification('Reading message aloud', 'info');
             };
 
-            utterance.onerror = (e) => {
-                console.error('Speech error:', e);
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
                 speakerBtn.classList.remove('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                showNotification('Error while reading message', 'error');
+
+                let errorMessage = 'Error while reading message';
+                switch (event.error) {
+                    case 'network':
+                        errorMessage = 'Network error during speech';
+                        break;
+                    case 'synthesis-unavailable':
+                        errorMessage = 'Speech synthesis unavailable';
+                        break;
+                    case 'synthesis-failed':
+                        errorMessage = 'Speech synthesis failed';
+                        break;
+                    case 'audio-busy':
+                        errorMessage = 'Audio system is busy';
+                        break;
+                    case 'audio-hardware':
+                        errorMessage = 'Audio hardware error';
+                        break;
+                    case 'language-unavailable':
+                        errorMessage = 'Language not available for speech';
+                        break;
+                    case 'voice-unavailable':
+                        errorMessage = 'Selected voice unavailable';
+                        break;
+                    case 'text-too-long':
+                        errorMessage = 'Text too long for speech synthesis';
+                        break;
+                    case 'invalid-argument':
+                        errorMessage = 'Invalid text for speech synthesis';
+                        break;
+                    default:
+                        errorMessage = `Speech error: ${event.error}`;
+                }
+
+                showNotification(errorMessage, 'error');
             };
 
             utterance.onend = () => {
@@ -501,8 +574,54 @@ document.addEventListener('DOMContentLoaded', function () {
                 speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
             };
 
-            // Speak the text
-            window.speechSynthesis.speak(utterance);
+            utterance.onpause = () => {
+                speakerBtn.classList.remove('speaking');
+                speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            };
+
+            utterance.onresume = () => {
+                speakerBtn.classList.add('speaking');
+                speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            };
+
+            // Check if text is too long (some browsers have limits)
+            if (cleanText.length > 32767) {
+                // Split long text into chunks
+                const chunks = cleanText.match(/.{1,32000}/g) || [cleanText];
+                showNotification(`Reading message in ${chunks.length} parts...`, 'info');
+
+                // Speak first chunk
+                utterance.text = chunks[0];
+                window.speechSynthesis.speak(utterance);
+
+                // Handle additional chunks if needed
+                if (chunks.length > 1) {
+                    let currentChunk = 0;
+                    utterance.onend = () => {
+                        currentChunk++;
+                        if (currentChunk < chunks.length && speakerBtn.classList.contains('speaking')) {
+                            const nextUtterance = new SpeechSynthesisUtterance(chunks[currentChunk]);
+                            Object.assign(nextUtterance, {
+                                lang: utterance.lang,
+                                rate: utterance.rate,
+                                pitch: utterance.pitch,
+                                volume: utterance.volume,
+                                voice: utterance.voice
+                            });
+                            nextUtterance.onend = utterance.onend;
+                            nextUtterance.onerror = utterance.onerror;
+                            window.speechSynthesis.speak(nextUtterance);
+                        } else {
+                            speakerBtn.classList.remove('speaking');
+                            speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                        }
+                    };
+                }
+            } else {
+                // Speak normally for shorter text
+                window.speechSynthesis.speak(utterance);
+            }
+
         } catch (error) {
             console.error('Text-to-speech error:', error);
             speakerBtn.classList.remove('speaking');
@@ -666,358 +785,358 @@ document.addEventListener('DOMContentLoaded', function () {
     // Alias for hideTypingIndicator for backward compatibility
     const removeTypingIndicator = hideTypingIndicator;
 
-/**
- * Handle sending a message
- */
-function sendMessage() {
-    const message = elements.chatInput.value.trim();
-    if (!message || state.isTyping) return;
+    /**
+     * Handle sending a message
+     */
+    function sendMessage() {
+        const message = elements.chatInput.value.trim();
+        if (!message || state.isTyping) return;
 
-    // Add user message to UI
-    addMessageToUI('user', message);
+        // Add user message to UI
+        addMessageToUI('user', message);
 
-    // Clear input and resize
-    elements.chatInput.value = '';
-    resizeInput();
+        // Clear input and resize
+        elements.chatInput.value = '';
+        resizeInput();
 
-    // Store message in conversation
-    saveMessageToConversation('user', message);
+        // Store message in conversation
+        saveMessageToConversation('user', message);
 
-    // Add to chatHistory for API context
-    chatHistory.push({
-        role: 'user',
-        content: message
-    });
+        // Add to chatHistory for API context
+        chatHistory.push({
+            role: 'user',
+            content: message
+        });
 
-    // Show typing indicator
-    showTypingIndicator();
+        // Show typing indicator
+        showTypingIndicator();
 
-    // Get AI response via API
-    fetchBotResponse(message);
-}
-
-/**
- * Save message to current conversation
- * @param {string} role - Role of message sender
- * @param {string} content - Message content
- */
-function saveMessageToConversation(role, content) {
-    // Find current conversation in history or create a new one
-    let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
-
-    if (!conversation) {
-        conversation = {
-            id: state.activeConversationId,
-            name: state.activeConversationName,
-            timestamp: Date.now(),
-            messages: []
-        };
-        state.chatHistory.unshift(conversation);
+        // Get AI response via API
+        fetchBotResponse(message);
     }
 
-    // Add message to conversation
-    conversation.messages.push({
-        role,
-        content,
-        timestamp: Date.now()
-    });
+    /**
+     * Save message to current conversation
+     * @param {string} role - Role of message sender
+     * @param {string} content - Message content
+     */
+    function saveMessageToConversation(role, content) {
+        // Find current conversation in history or create a new one
+        let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
 
-    // Check if we've exceeded the message limit
-    if (conversation.messages.length > state.settings.messageLimit) {
-        // Remove oldest messages from UI
-        const messagesToRemove = conversation.messages.length - state.settings.messageLimit;
-
-        // Remove oldest messages from DOM
-        for (let i = 0; i < messagesToRemove; i++) {
-            if (elements.chatMessages.firstChild) {
-                elements.chatMessages.removeChild(elements.chatMessages.firstChild);
-            }
+        if (!conversation) {
+            conversation = {
+                id: state.activeConversationId,
+                name: state.activeConversationName,
+                timestamp: Date.now(),
+                messages: []
+            };
+            state.chatHistory.unshift(conversation);
         }
 
-        // Remove oldest messages from conversation array
-        conversation.messages = conversation.messages.slice(messagesToRemove);
+        // Add message to conversation
+        conversation.messages.push({
+            role,
+            content,
+            timestamp: Date.now()
+        });
 
-        // Also update chatHistory for API context to keep in sync
-        chatHistory = chatHistory.slice(messagesToRemove);
+        // Check if we've exceeded the message limit
+        if (conversation.messages.length > state.settings.messageLimit) {
+            // Remove oldest messages from UI
+            const messagesToRemove = conversation.messages.length - state.settings.messageLimit;
 
-        // Show notification
-        showNotification('Older messages have been removed to improve performance', 'info');
-    }
-
-    // Update timestamp
-    conversation.timestamp = Date.now();
-
-    // Save to localStorage if enabled
-    if (state.settings.saveHistory) {
-        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-        updateHistoryUI();
-    }
-}
-
-/**
- * Get a general response for fallback
- * @param {string} userMessage - User message
- * @returns {string} Fallback response
- */
-function getGeneralResponse(userMessage) {
-    const responses = [
-        "I understand what you're asking about. Let me provide some information on that topic.",
-        "That's an interesting question. Here's what I know about it.",
-        "I'd be happy to help with that. Here's my response.",
-        "Based on my knowledge, I can offer the following insights.",
-        "I've analyzed your question and here's what I can tell you."
-    ];
-
-    const personalityResponses = {
-        'assistant': "As your professional assistant, I can provide a clear and concise answer to your inquiry.",
-        'fetchBotResponsedeveloper': "Looking at this from a technical perspective, let me explain with some code examples.",
-        'teacher': "Let me explain this concept in a way that's easy to understand with some helpful examples.",
-        'creative': "That sparks some interesting ideas! Here's a creative approach to what you're asking about."
-    };
-
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    const personalityIntro = personalityResponses[state.personality.type] || '';
-
-    return `${personalityIntro} ${randomResponse} (This is a fallback response because the API connection wasn't available.)`;
-}
-
-/**
- * Fetch response from Groq API
- * @param {string} userMessage - User message
- */
-
-
-function fetchBotResponse(userMessage) {
-    const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
-
-    // Prepare system message based on personality
-    const systemMessage = {
-        role: "system",
-        content: PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant']
-    };
-
-    // Add custom instructions if available
-    if (state.personality.customInstructions) {
-        systemMessage.content += "\n\n" + state.personality.customInstructions;
-    }
-
-    // Prepare messages array
-    const messages = [systemMessage, ...chatHistory];
-
-    // Configuration for the request
-    const requestData = {
-        model: MODEL,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 800,
-        top_p: 1
-    };
-
-    console.log('Sending request to /api/chat...');
-
-    // Call your serverless function (NOT Groq directly)
-    fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-        .then(response => {
-            console.log('Response status:', response.status);
-            if (!response.ok) {
-                return response.text().then(text => {
-                    console.error('API Error Response:', text);
-                    throw new Error(`HTTP ${response.status}: ${text}`);
-                });
+            // Remove oldest messages from DOM
+            for (let i = 0; i < messagesToRemove; i++) {
+                if (elements.chatMessages.firstChild) {
+                    elements.chatMessages.removeChild(elements.chatMessages.firstChild);
+                }
             }
-            return response.json();
+
+            // Remove oldest messages from conversation array
+            conversation.messages = conversation.messages.slice(messagesToRemove);
+
+            // Also update chatHistory for API context to keep in sync
+            chatHistory = chatHistory.slice(messagesToRemove);
+
+            // Show notification
+            showNotification('Older messages have been removed to improve performance', 'info');
+        }
+
+        // Update timestamp
+        conversation.timestamp = Date.now();
+
+        // Save to localStorage if enabled
+        if (state.settings.saveHistory) {
+            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+            updateHistoryUI();
+        }
+    }
+
+    /**
+     * Get a general response for fallback
+     * @param {string} userMessage - User message
+     * @returns {string} Fallback response
+     */
+    function getGeneralResponse(userMessage) {
+        const responses = [
+            "I understand what you're asking about. Let me provide some information on that topic.",
+            "That's an interesting question. Here's what I know about it.",
+            "I'd be happy to help with that. Here's my response.",
+            "Based on my knowledge, I can offer the following insights.",
+            "I've analyzed your question and here's what I can tell you."
+        ];
+
+        const personalityResponses = {
+            'assistant': "As your professional assistant, I can provide a clear and concise answer to your inquiry.",
+            'fetchBotResponsedeveloper': "Looking at this from a technical perspective, let me explain with some code examples.",
+            'teacher': "Let me explain this concept in a way that's easy to understand with some helpful examples.",
+            'creative': "That sparks some interesting ideas! Here's a creative approach to what you're asking about."
+        };
+
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        const personalityIntro = personalityResponses[state.personality.type] || '';
+
+        return `${personalityIntro} ${randomResponse} (This is a fallback response because the API connection wasn't available.)`;
+    }
+
+    /**
+     * Fetch response from Groq API
+     * @param {string} userMessage - User message
+     */
+
+
+    function fetchBotResponse(userMessage) {
+        const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
+
+        // Prepare system message based on personality
+        const systemMessage = {
+            role: "system",
+            content: PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant']
+        };
+
+        // Add custom instructions if available
+        if (state.personality.customInstructions) {
+            systemMessage.content += "\n\n" + state.personality.customInstructions;
+        }
+
+        // Prepare messages array
+        const messages = [systemMessage, ...chatHistory];
+
+        // Configuration for the request
+        const requestData = {
+            model: MODEL,
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 800,
+            top_p: 1
+        };
+
+        console.log('Sending request to /api/chat...');
+
+        // Call your serverless function (NOT Groq directly)
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
         })
-        .then(data => {
-            console.log('API response:', data);
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('API Error Response:', text);
+                        throw new Error(`HTTP ${response.status}: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('API response:', data);
 
-            if (data.error) {
-                throw new Error(data.error.message || data.error);
-            }
+                if (data.error) {
+                    throw new Error(data.error.message || data.error);
+                }
 
-            if (data.choices && data.choices[0] && data.choices[0].message) {
-                // Remove typing indicator
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    // Remove typing indicator
+                    removeTypingIndicator();
+
+                    const responseContent = data.choices[0].message.content;
+
+                    // Add response to UI
+                    addMessageToUI('assistant', responseContent);
+
+                    // Add to chat history for API context
+                    chatHistory.push({
+                        role: 'assistant',
+                        content: responseContent
+                    });
+
+                    // Save to conversation
+                    saveMessageToConversation('assistant', responseContent);
+                } else {
+                    throw new Error('Invalid response format from API');
+                }
+            })
+            .catch(error => {
+                console.error('API Error:', error);
                 removeTypingIndicator();
 
-                const responseContent = data.choices[0].message.content;
+                let errorMessage = error.message || 'Unknown error occurred';
+                showNotification(`API Error: ${errorMessage}`, 'error');
 
-                // Add response to UI
-                addMessageToUI('assistant', responseContent);
+                // Use fallback response
+                const fallbackResponse = getGeneralResponse(userMessage);
+                addMessageToUI('assistant', fallbackResponse);
 
-                // Add to chat history for API context
                 chatHistory.push({
                     role: 'assistant',
-                    content: responseContent
+                    content: fallbackResponse
                 });
 
-                // Save to conversation
-                saveMessageToConversation('assistant', responseContent);
-            } else {
-                throw new Error('Invalid response format from API');
-            }
-        })
-        .catch(error => {
-            console.error('API Error:', error);
-            removeTypingIndicator();
-
-            let errorMessage = error.message || 'Unknown error occurred';
-            showNotification(`API Error: ${errorMessage}`, 'error');
-
-            // Use fallback response
-            const fallbackResponse = getGeneralResponse(userMessage);
-            addMessageToUI('assistant', fallbackResponse);
-
-            chatHistory.push({
-                role: 'assistant',
-                content: fallbackResponse
+                saveMessageToConversation('assistant', fallbackResponse);
             });
-
-            saveMessageToConversation('assistant', fallbackResponse);
-        });
-}
-
-
-
-/**
- * Process API response and update UI
- * @param {Object} apiData - API response data
- */
-function processApiResponse(apiData) {
-    let responseText = apiData.response || '';
-
-    // Remove typing indicator
-    removeTypingIndicator();
-    state.isTyping = false;
-
-    // Add response to chat history in state for saving
-    saveMessageToConversation('assistant', responseText);
-
-    // Add the response to UI
-    addMessageToUI('assistant', responseText);
-}
-
-/**
- * Create new conversation
- */
-function createNewConversation() {
-    // Generate new conversation ID
-    state.activeConversationId = generateId();
-    state.activeConversationName = 'New Conversation';
-
-    // Update UI
-    elements.sectionTitle.textContent = state.activeConversationName;
-    elements.chatMessages.innerHTML = '';
-
-    // Reset chat history for API context
-    chatHistory = [];
-
-    // Add welcome message
-    const welcomeMessage = "Hello! I'm Wahab , your AI assistant. How can I help you today?";
-    addMessageToUI('assistant', welcomeMessage);
-
-    // Save welcome message to conversation
-    saveMessageToConversation('assistant', welcomeMessage);
-
-    // Add to API context history
-    chatHistory.push({
-        role: 'assistant',
-        content: welcomeMessage
-    });
-}
-
-/**
- * Resize input based on content
- */
-function resizeInput() {
-    elements.chatInput.style.height = 'auto';
-    elements.chatInput.style.height = `${elements.chatInput.scrollHeight}px`;
-}
-
-/**
- * Show notification
- * @param {string} message - Notification message
- * @param {string} type - Notification type (info, success, error, warning)
- */
-function showNotification(message, type = 'info') {
-    if (!message) return;
-
-    // Clear any existing notifications first
-    const existingNotifications = elements.notificationContainer.querySelectorAll('.notification');
-    existingNotifications.forEach(note => {
-        note.classList.remove('show');
-        setTimeout(() => note.remove(), 300);
-    });
-
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-
-    let icon;
-    switch (type) {
-        case 'success': icon = 'fa-check-circle'; break;
-        case 'error': icon = 'fa-exclamation-circle'; break;
-        case 'warning': icon = 'fa-exclamation-triangle'; break;
-        default: icon = 'fa-info-circle';
     }
 
-    notification.innerHTML = `
+
+
+    /**
+     * Process API response and update UI
+     * @param {Object} apiData - API response data
+     */
+    function processApiResponse(apiData) {
+        let responseText = apiData.response || '';
+
+        // Remove typing indicator
+        removeTypingIndicator();
+        state.isTyping = false;
+
+        // Add response to chat history in state for saving
+        saveMessageToConversation('assistant', responseText);
+
+        // Add the response to UI
+        addMessageToUI('assistant', responseText);
+    }
+
+    /**
+     * Create new conversation
+     */
+    function createNewConversation() {
+        // Generate new conversation ID
+        state.activeConversationId = generateId();
+        state.activeConversationName = 'New Conversation';
+
+        // Update UI
+        elements.sectionTitle.textContent = state.activeConversationName;
+        elements.chatMessages.innerHTML = '';
+
+        // Reset chat history for API context
+        chatHistory = [];
+
+        // Add welcome message
+        const welcomeMessage = "Hello! I'm Wahab , your AI assistant. How can I help you today?";
+        addMessageToUI('assistant', welcomeMessage);
+
+        // Save welcome message to conversation
+        saveMessageToConversation('assistant', welcomeMessage);
+
+        // Add to API context history
+        chatHistory.push({
+            role: 'assistant',
+            content: welcomeMessage
+        });
+    }
+
+    /**
+     * Resize input based on content
+     */
+    function resizeInput() {
+        elements.chatInput.style.height = 'auto';
+        elements.chatInput.style.height = `${elements.chatInput.scrollHeight}px`;
+    }
+
+    /**
+     * Show notification
+     * @param {string} message - Notification message
+     * @param {string} type - Notification type (info, success, error, warning)
+     */
+    function showNotification(message, type = 'info') {
+        if (!message) return;
+
+        // Clear any existing notifications first
+        const existingNotifications = elements.notificationContainer.querySelectorAll('.notification');
+        existingNotifications.forEach(note => {
+            note.classList.remove('show');
+            setTimeout(() => note.remove(), 300);
+        });
+
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+
+        let icon;
+        switch (type) {
+            case 'success': icon = 'fa-check-circle'; break;
+            case 'error': icon = 'fa-exclamation-circle'; break;
+            case 'warning': icon = 'fa-exclamation-triangle'; break;
+            default: icon = 'fa-info-circle';
+        }
+
+        notification.innerHTML = `
             <div class="notification-icon">
                 <i class="fas ${icon}"></i>
             </div>
             <div class="notification-message">${message}</div>
         `;
 
-    elements.notificationContainer.appendChild(notification);
+        elements.notificationContainer.appendChild(notification);
 
-    // Use requestAnimationFrame for smoother animations
-    requestAnimationFrame(() => {
-        // Trigger animation in the next frame
-        setTimeout(() => notification.classList.add('show'), 10);
-    });
+        // Use requestAnimationFrame for smoother animations
+        requestAnimationFrame(() => {
+            // Trigger animation in the next frame
+            setTimeout(() => notification.classList.add('show'), 10);
+        });
 
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        notification.classList.remove('show');
-        // Remove from DOM after animation completes
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            notification.classList.remove('show');
+            // Remove from DOM after animation completes
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 
-/**
- * Custom popup system
- * @param {Object} options - Popup options
- * @returns {Promise} Resolves with user response
- */
-function showPopup(options = {}) {
-    return new Promise((resolve) => {
-        // Set default options
-        const settings = {
-            type: 'alert',
-            title: 'Notification',
-            message: '',
-            placeholder: '',
-            defaultValue: '',
-            confirmText: 'OK',
-            cancelText: 'Cancel',
-            className: '',
-            showClose: true,
-            closeOnOverlayClick: false,
-            ...options
-        };
+    /**
+     * Custom popup system
+     * @param {Object} options - Popup options
+     * @returns {Promise} Resolves with user response
+     */
+    function showPopup(options = {}) {
+        return new Promise((resolve) => {
+            // Set default options
+            const settings = {
+                type: 'alert',
+                title: 'Notification',
+                message: '',
+                placeholder: '',
+                defaultValue: '',
+                confirmText: 'OK',
+                cancelText: 'Cancel',
+                className: '',
+                showClose: true,
+                closeOnOverlayClick: false,
+                ...options
+            };
 
-        // Create popup elements
-        const popupOverlay = document.createElement('div');
-        popupOverlay.className = 'popup-overlay';
+            // Create popup elements
+            const popupOverlay = document.createElement('div');
+            popupOverlay.className = 'popup-overlay';
 
-        const popup = document.createElement('div');
-        popup.className = `popup ${settings.className} popup-${settings.type}`;
+            const popup = document.createElement('div');
+            popup.className = `popup ${settings.className} popup-${settings.type}`;
 
-        // Create popup content
-        popup.innerHTML = `
+            // Create popup content
+            popup.innerHTML = `
                 <div class="popup-header">
                     <h4>${settings.title}</h4>
                     ${settings.showClose ? '<button class="popup-close"><i class="fas fa-times"></i></button>' : ''}
@@ -1025,241 +1144,241 @@ function showPopup(options = {}) {
                 <div class="popup-body">
                     ${settings.message ? `<div class="popup-message">${settings.message}</div>` : ''}
                     ${settings.type === 'prompt' ?
-                `<input type="text" class="popup-input" placeholder="${settings.placeholder}" 
+                    `<input type="text" class="popup-input" placeholder="${settings.placeholder}" 
                          value="${settings.defaultValue}">` : ''}
                     ${settings.type === 'custom' && settings.customHTML ? settings.customHTML : ''}
                 </div>
                 <div class="popup-footer">
                     ${settings.type !== 'alert' ?
-                `<button class="secondary-btn popup-cancel">${settings.cancelText}</button>` : ''}
+                    `<button class="secondary-btn popup-cancel">${settings.cancelText}</button>` : ''}
                     <button class="primary-btn popup-confirm">${settings.confirmText}</button>
                 </div>
             `;
 
-        // Add to DOM
-        document.body.appendChild(popupOverlay);
-        document.body.appendChild(popup);
+            // Add to DOM
+            document.body.appendChild(popupOverlay);
+            document.body.appendChild(popup);
 
-        // Add animation classes
-        requestAnimationFrame(() => {
-            setTimeout(() => {
-                popupOverlay.classList.add('active');
-                popup.classList.add('active');
-            }, 10);
-        });
-
-        // Handle close actions
-        const closePopup = (value) => {
-            popup.classList.remove('active');
-            popupOverlay.classList.remove('active');
-
-            setTimeout(() => {
-                document.body.removeChild(popup);
-                document.body.removeChild(popupOverlay);
-                resolve(value);
-            }, 300); // Match the CSS transition duration
-        };
-
-        // Set up event listeners
-        // Close button
-        if (settings.showClose) {
-            const closeBtn = popup.querySelector('.popup-close');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', () => closePopup(null));
-            }
-        }
-
-        // Confirm button
-        const confirmBtn = popup.querySelector('.popup-confirm');
-        if (confirmBtn) {
-            confirmBtn.addEventListener('click', () => {
-                if (settings.type === 'prompt') {
-                    const input = popup.querySelector('.popup-input');
-                    closePopup(input ? input.value : null);
-                } else {
-                    closePopup(true);
-                }
+            // Add animation classes
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    popupOverlay.classList.add('active');
+                    popup.classList.add('active');
+                }, 10);
             });
-        }
 
-        // Cancel button
-        const cancelBtn = popup.querySelector('.popup-cancel');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => closePopup(false));
-        }
+            // Handle close actions
+            const closePopup = (value) => {
+                popup.classList.remove('active');
+                popupOverlay.classList.remove('active');
 
-        // Allow closing with Escape key
-        const handleEscape = (e) => {
-            if (e.key === 'Escape') {
-                closePopup(null);
-                document.removeEventListener('keydown', handleEscape);
+                setTimeout(() => {
+                    document.body.removeChild(popup);
+                    document.body.removeChild(popupOverlay);
+                    resolve(value);
+                }, 300); // Match the CSS transition duration
+            };
+
+            // Set up event listeners
+            // Close button
+            if (settings.showClose) {
+                const closeBtn = popup.querySelector('.popup-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => closePopup(null));
+                }
             }
-        };
 
-        document.addEventListener('keydown', handleEscape);
-
-        // Handle prompt input enter key
-        if (settings.type === 'prompt') {
-            const input = popup.querySelector('.popup-input');
-            if (input) {
-                input.focus();
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        closePopup(input.value);
+            // Confirm button
+            const confirmBtn = popup.querySelector('.popup-confirm');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', () => {
+                    if (settings.type === 'prompt') {
+                        const input = popup.querySelector('.popup-input');
+                        closePopup(input ? input.value : null);
+                    } else {
+                        closePopup(true);
                     }
                 });
             }
+
+            // Cancel button
+            const cancelBtn = popup.querySelector('.popup-cancel');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', () => closePopup(false));
+            }
+
+            // Allow closing with Escape key
+            const handleEscape = (e) => {
+                if (e.key === 'Escape') {
+                    closePopup(null);
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            };
+
+            document.addEventListener('keydown', handleEscape);
+
+            // Handle prompt input enter key
+            if (settings.type === 'prompt') {
+                const input = popup.querySelector('.popup-input');
+                if (input) {
+                    input.focus();
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            closePopup(input.value);
+                        }
+                    });
+                }
+            }
+
+            // Prevent clicks on overlay from closing (unless configured to do so)
+            popupOverlay.addEventListener('click', () => {
+                if (settings.closeOnOverlayClick) {
+                    closePopup(null);
+                }
+            });
+
+            // Prevent clicks within popup from bubbling to overlay
+            popup.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        });
+    }
+
+    /**
+     * Save settings to localStorage
+     */
+    function saveSettings() {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
+        showNotification('Settings saved successfully', 'success');
+    }
+
+    /**
+     * Save personality to localStorage
+     */
+    function savePersonality() {
+        localStorage.setItem(STORAGE_KEYS.PERSONALITY, JSON.stringify(state.personality));
+        showNotification('Personality preferences saved', 'success');
+    }
+
+    /**
+     * Get available speech synthesis voices
+     * @returns {Promise<SpeechSynthesisVoice[]>} Available voices
+     */
+    function getSpeechVoices() {
+        return new Promise((resolve) => {
+            let voices = window.speechSynthesis.getVoices();
+
+            if (voices.length) {
+                resolve(voices);
+                return;
+            }
+
+            // Chrome loads voices asynchronously
+            const voicesChangedHandler = () => {
+                voices = window.speechSynthesis.getVoices();
+                window.speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
+                resolve(voices);
+            };
+
+            window.speechSynthesis.addEventListener('voiceschanged', voicesChangedHandler);
+
+            // Set a timeout just in case
+            setTimeout(() => {
+                window.speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
+                resolve(window.speechSynthesis.getVoices());
+            }, 1000);
+        });
+    }
+
+    /**
+     * Find the best voice based on gender
+     * @param {string} gender - Preferred gender ('male' or 'female')
+     * @returns {Promise<SpeechSynthesisVoice>} Best matching voice
+     */
+    async function getBestVoice(gender = null) {
+        const voices = await getSpeechVoices();
+
+        console.log("Available voices:", voices.map(v => `${v.name} (${v.lang})`));
+
+        if (!voices.length) return null;
+
+        // Try to find voice based on gender
+        if (gender) {
+            // Common patterns in voice names
+            const femalePatterns = ['female', 'woman', 'girl', 'fiona', 'samantha', 'karen', 'moira', 'tessa', 'zira'];
+            const malePatterns = ['male', 'man', 'boy', 'guy', 'david', 'mark', 'daniel', 'alex', 'tom'];
+            const patterns = gender === 'female' ? femalePatterns : malePatterns;
+
+            // First try to find English voices with the gender
+            const englishVoiceWithGender = voices.find(voice =>
+                voice.lang.startsWith('en') &&
+                patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
+            );
+
+            if (englishVoiceWithGender) {
+                console.log(`Selected ${gender} voice: ${englishVoiceWithGender.name}`);
+                return englishVoiceWithGender;
+            }
+
+            // If no English voice with gender, try any voice with the gender
+            const anyVoiceWithGender = voices.find(voice =>
+                patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
+            );
+
+            if (anyVoiceWithGender) {
+                console.log(`Selected ${gender} voice: ${anyVoiceWithGender.name}`);
+                return anyVoiceWithGender;
+            }
         }
 
-        // Prevent clicks on overlay from closing (unless configured to do so)
-        popupOverlay.addEventListener('click', () => {
-            if (settings.closeOnOverlayClick) {
-                closePopup(null);
+        // Default to first English voice or any voice
+        return voices.find(v => v.lang.startsWith('en')) || voices[0];
+    }
+
+    /**
+     * Search conversation history
+     * @param {string} term - Search term
+     */
+    function searchConversationHistory(term) {
+        if (!term) return;
+
+        const searchResults = state.chatHistory.filter(convo => {
+            // Search in conversation name
+            if (convo.name && convo.name.toLowerCase().includes(term.toLowerCase())) {
+                return true;
             }
+
+            // Search in messages
+            return convo.messages && convo.messages.some(msg =>
+                msg.content.toLowerCase().includes(term.toLowerCase())
+            );
         });
 
-        // Prevent clicks within popup from bubbling to overlay
-        popup.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-    });
-}
-
-/**
- * Save settings to localStorage
- */
-function saveSettings() {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(state.settings));
-    showNotification('Settings saved successfully', 'success');
-}
-
-/**
- * Save personality to localStorage
- */
-function savePersonality() {
-    localStorage.setItem(STORAGE_KEYS.PERSONALITY, JSON.stringify(state.personality));
-    showNotification('Personality preferences saved', 'success');
-}
-
-/**
- * Get available speech synthesis voices
- * @returns {Promise<SpeechSynthesisVoice[]>} Available voices
- */
-function getSpeechVoices() {
-    return new Promise((resolve) => {
-        let voices = window.speechSynthesis.getVoices();
-
-        if (voices.length) {
-            resolve(voices);
+        if (!searchResults.length) {
+            showNotification('No matching conversations found', 'info');
             return;
         }
 
-        // Chrome loads voices asynchronously
-        const voicesChangedHandler = () => {
-            voices = window.speechSynthesis.getVoices();
-            window.speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
-            resolve(voices);
-        };
-
-        window.speechSynthesis.addEventListener('voiceschanged', voicesChangedHandler);
-
-        // Set a timeout just in case
-        setTimeout(() => {
-            window.speechSynthesis.removeEventListener('voiceschanged', voicesChangedHandler);
-            resolve(window.speechSynthesis.getVoices());
-        }, 1000);
-    });
-}
-
-/**
- * Find the best voice based on gender
- * @param {string} gender - Preferred gender ('male' or 'female')
- * @returns {Promise<SpeechSynthesisVoice>} Best matching voice
- */
-async function getBestVoice(gender = null) {
-    const voices = await getSpeechVoices();
-
-    console.log("Available voices:", voices.map(v => `${v.name} (${v.lang})`));
-
-    if (!voices.length) return null;
-
-    // Try to find voice based on gender
-    if (gender) {
-        // Common patterns in voice names
-        const femalePatterns = ['female', 'woman', 'girl', 'fiona', 'samantha', 'karen', 'moira', 'tessa', 'zira'];
-        const malePatterns = ['male', 'man', 'boy', 'guy', 'david', 'mark', 'daniel', 'alex', 'tom'];
-        const patterns = gender === 'female' ? femalePatterns : malePatterns;
-
-        // First try to find English voices with the gender
-        const englishVoiceWithGender = voices.find(voice =>
-            voice.lang.startsWith('en') &&
-            patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
-        );
-
-        if (englishVoiceWithGender) {
-            console.log(`Selected ${gender} voice: ${englishVoiceWithGender.name}`);
-            return englishVoiceWithGender;
-        }
-
-        // If no English voice with gender, try any voice with the gender
-        const anyVoiceWithGender = voices.find(voice =>
-            patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
-        );
-
-        if (anyVoiceWithGender) {
-            console.log(`Selected ${gender} voice: ${anyVoiceWithGender.name}`);
-            return anyVoiceWithGender;
-        }
-    }
-
-    // Default to first English voice or any voice
-    return voices.find(v => v.lang.startsWith('en')) || voices[0];
-}
-
-/**
- * Search conversation history
- * @param {string} term - Search term
- */
-function searchConversationHistory(term) {
-    if (!term) return;
-
-    const searchResults = state.chatHistory.filter(convo => {
-        // Search in conversation name
-        if (convo.name && convo.name.toLowerCase().includes(term.toLowerCase())) {
-            return true;
-        }
-
-        // Search in messages
-        return convo.messages && convo.messages.some(msg =>
-            msg.content.toLowerCase().includes(term.toLowerCase())
-        );
-    });
-
-    if (!searchResults.length) {
-        showNotification('No matching conversations found', 'info');
-        return;
-    }
-
-    // Show search results in history container
-    elements.historyContainer.innerHTML = `
+        // Show search results in history container
+        elements.historyContainer.innerHTML = `
             <div class="search-header">
                 Found ${searchResults.length} results for "${term}" 
                 <button id="clear-search" class="secondary-btn">Clear</button>
             </div>
         `;
 
-    const fragment = document.createDocumentFragment();
+        const fragment = document.createDocumentFragment();
 
-    searchResults.forEach(convo => {
-        const historyItem = document.createElement('div');
-        historyItem.className = 'history-item';
-        historyItem.dataset.id = convo.id;
+        searchResults.forEach(convo => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.dataset.id = convo.id;
 
-        const preview = convo.messages && convo.messages.length > 0
-            ? convo.messages[0].content.substring(0, 60) + (convo.messages[0].content.length > 60 ? '...' : '')
-            : 'Empty conversation';
+            const preview = convo.messages && convo.messages.length > 0
+                ? convo.messages[0].content.substring(0, 60) + (convo.messages[0].content.length > 60 ? '...' : '')
+                : 'Empty conversation';
 
-        historyItem.innerHTML = `
+            historyItem.innerHTML = `
                 <div class="history-header">
                     <div class="history-title">${convo.name || 'Unnamed Conversation'}</div>
                     <div class="history-date">${formatDate(convo.timestamp || Date.now())}</div>
@@ -1267,441 +1386,441 @@ function searchConversationHistory(term) {
                 <div class="history-preview">${preview}</div>
             `;
 
-        historyItem.addEventListener('click', () => loadConversation(convo.id));
-        fragment.appendChild(historyItem);
-    });
+            historyItem.addEventListener('click', () => loadConversation(convo.id));
+            fragment.appendChild(historyItem);
+        });
 
-    elements.historyContainer.appendChild(fragment);
+        elements.historyContainer.appendChild(fragment);
 
-    // Add event listener to clear search
-    document.getElementById('clear-search').addEventListener('click', updateHistoryUI);
-}
+        // Add event listener to clear search
+        document.getElementById('clear-search').addEventListener('click', updateHistoryUI);
+    }
 
-/**
- * Clear all conversation history
- */
-function clearAllHistory() {
-    state.chatHistory = [];
-    localStorage.removeItem(STORAGE_KEYS.CONVERSATIONS);
-    localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-
-    // Update UI
-    updateHistoryUI();
-    showNotification('All conversation history deleted', 'success');
-
-    // Create a new conversation
-    createNewConversation();
-}
-
-/**
- * Delete current conversation
- */
-function deleteCurrentConversation() {
-    // Find the index of the current conversation
-    const index = state.chatHistory.findIndex(c => c.id === state.activeConversationId);
-
-    if (index !== -1) {
-        // Remove the conversation from the array
-        state.chatHistory.splice(index, 1);
-
-        // Save updated history
-        if (state.settings.saveHistory) {
-            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-            localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-        }
+    /**
+     * Clear all conversation history
+     */
+    function clearAllHistory() {
+        state.chatHistory = [];
+        localStorage.removeItem(STORAGE_KEYS.CONVERSATIONS);
+        localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
 
         // Update UI
         updateHistoryUI();
-        showNotification('Conversation deleted', 'success');
+        showNotification('All conversation history deleted', 'success');
 
         // Create a new conversation
         createNewConversation();
     }
-}
 
-/**
- * Set up all event listeners
- */
-function setupEventListeners() {
+    /**
+     * Delete current conversation
+     */
+    function deleteCurrentConversation() {
+        // Find the index of the current conversation
+        const index = state.chatHistory.findIndex(c => c.id === state.activeConversationId);
 
-    elements.menuItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const tabId = item.getAttribute('data-tab');
+        if (index !== -1) {
+            // Remove the conversation from the array
+            state.chatHistory.splice(index, 1);
 
-            // Update active menu item
-            elements.menuItems.forEach(mi => mi.classList.remove('active'));
-            item.classList.add('active');
+            // Save updated history
+            if (state.settings.saveHistory) {
+                localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+                localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
+            }
 
-            // Show active tab content
-            elements.tabContents.forEach(content => {
-                content.classList.remove('active');
+            // Update UI
+            updateHistoryUI();
+            showNotification('Conversation deleted', 'success');
+
+            // Create a new conversation
+            createNewConversation();
+        }
+    }
+
+    /**
+     * Set up all event listeners
+     */
+    function setupEventListeners() {
+
+        elements.menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const tabId = item.getAttribute('data-tab');
+
+                // Update active menu item
+                elements.menuItems.forEach(mi => mi.classList.remove('active'));
+                item.classList.add('active');
+
+                // Show active tab content
+                elements.tabContents.forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(`${tabId}-content`).classList.add('active');
+
+                // DON'T automatically create a new conversation when switching to chat tab
+                // Only handle the mobile menu closing
+                if (window.innerWidth <= 768) {
+                    elements.sidePanel.classList.remove('active');
+                }
             });
-            document.getElementById(`${tabId}-content`).classList.add('active');
+        });
 
-            // DON'T automatically create a new conversation when switching to chat tab
-            // Only handle the mobile menu closing
-            if (window.innerWidth <= 768) {
-                elements.sidePanel.classList.remove('active');
+        document.querySelector('.menu-item[data-tab="conversations"]').addEventListener('click', () => {
+            // Just show the conversations tab, don't create a new conversation
+            const tabId = 'conversations';
+            elements.menuItems.forEach(mi => mi.classList.remove('active'));
+            document.querySelector('.menu-item[data-tab="conversations"]').classList.add('active');
+            elements.tabContents.forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabId}-content`).classList.add('active');
+        });
+
+        // Add a separate handler for creating new conversations
+        document.getElementById('create-new-chat-btn').addEventListener('click', () => {
+            createNewConversation();
+            showNotification('Started new conversation', 'info');
+        });
+
+        // Mobile menu toggle
+        elements.menuToggleBtn.addEventListener('click', () => {
+            elements.sidePanel.classList.toggle('active');
+        });
+
+        // Chat input handling
+        elements.chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
             }
         });
-    });
 
-    document.querySelector('.menu-item[data-tab="conversations"]').addEventListener('click', () => {
-        // Just show the conversations tab, don't create a new conversation
-        const tabId = 'conversations';
-        elements.menuItems.forEach(mi => mi.classList.remove('active'));
-        document.querySelector('.menu-item[data-tab="conversations"]').classList.add('active');
-        elements.tabContents.forEach(content => content.classList.remove('active'));
-        document.getElementById(`${tabId}-content`).classList.add('active');
-    });
+        elements.chatInput.addEventListener('input', resizeInput);
+        elements.sendButton.addEventListener('click', sendMessage);
 
-    // Add a separate handler for creating new conversations
-    document.getElementById('create-new-chat-btn').addEventListener('click', () => {
-        createNewConversation();
-        showNotification('Started new conversation', 'info');
-    });
-
-    // Mobile menu toggle
-    elements.menuToggleBtn.addEventListener('click', () => {
-        elements.sidePanel.classList.toggle('active');
-    });
-
-    // Chat input handling
-    elements.chatInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-
-    elements.chatInput.addEventListener('input', resizeInput);
-    elements.sendButton.addEventListener('click', sendMessage);
-
-    // Suggestion chips
-    elements.suggestionChips.forEach(chip => {
-        chip.addEventListener('click', () => {
-            elements.chatInput.value = chip.textContent;
-            resizeInput();
-            sendMessage();
+        // Suggestion chips
+        elements.suggestionChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                elements.chatInput.value = chip.textContent;
+                resizeInput();
+                sendMessage();
+            });
         });
-    });
 
-    // Theme toggles
-    elements.darkThemeToggle.addEventListener('click', () => {
-        document.body.classList.remove('light-theme');
-        state.settings.theme = 'dark';
-        elements.darkThemeToggle.classList.add('active');
-        elements.lightThemeToggle.classList.remove('active');
-        saveSettings();
-    });
-
-    elements.lightThemeToggle.addEventListener('click', () => {
-        document.body.classList.add('light-theme');
-        state.settings.theme = 'light';
-        elements.lightThemeToggle.classList.add('active');
-        elements.darkThemeToggle.classList.remove('active');
-        saveSettings();
-    });
-
-    // Settings toggles
-    elements.historyToggle.addEventListener('click', () => {
-        elements.historyToggle.classList.toggle('active');
-        state.settings.saveHistory = elements.historyToggle.classList.contains('active');
-        saveSettings();
-    });
-
-    elements.usageToggle.addEventListener('click', () => {
-        elements.usageToggle.classList.toggle('active');
-        state.settings.shareData = elements.usageToggle.classList.contains('active');
-        saveSettings();
-    });
-
-    // Personality card selection
-    elements.personalityCards.forEach(card => {
-        card.addEventListener('click', () => {
-            elements.personalityCards.forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            state.personality.type = card.getAttribute('data-personality');
+        // Theme toggles
+        elements.darkThemeToggle.addEventListener('click', () => {
+            document.body.classList.remove('light-theme');
+            state.settings.theme = 'dark';
+            elements.darkThemeToggle.classList.add('active');
+            elements.lightThemeToggle.classList.remove('active');
+            saveSettings();
         });
-    });
 
-    // Save personality button
-    elements.savePersonalityBtn.addEventListener('click', () => {
-        state.personality.customInstructions = elements.customInstructions.value;
-        savePersonality();
-    });
+        elements.lightThemeToggle.addEventListener('click', () => {
+            document.body.classList.add('light-theme');
+            state.settings.theme = 'light';
+            elements.lightThemeToggle.classList.add('active');
+            elements.darkThemeToggle.classList.remove('active');
+            saveSettings();
+        });
 
-    // Rename modal functionality
-    elements.renameBtn.addEventListener('click', () => {
-        elements.modalOverlay.style.display = 'block';
-        elements.renameModal.style.display = 'block';
-        elements.renameInput.value = state.activeConversationName;
-        setTimeout(() => elements.renameModal.classList.add('active'), 10);
-    });
+        // Settings toggles
+        elements.historyToggle.addEventListener('click', () => {
+            elements.historyToggle.classList.toggle('active');
+            state.settings.saveHistory = elements.historyToggle.classList.contains('active');
+            saveSettings();
+        });
 
-    // Modal close events
-    [elements.renameModalClose, elements.renameCancel, elements.modalOverlay].forEach(el => {
-        el.addEventListener('click', () => {
+        elements.usageToggle.addEventListener('click', () => {
+            elements.usageToggle.classList.toggle('active');
+            state.settings.shareData = elements.usageToggle.classList.contains('active');
+            saveSettings();
+        });
+
+        // Personality card selection
+        elements.personalityCards.forEach(card => {
+            card.addEventListener('click', () => {
+                elements.personalityCards.forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                state.personality.type = card.getAttribute('data-personality');
+            });
+        });
+
+        // Save personality button
+        elements.savePersonalityBtn.addEventListener('click', () => {
+            state.personality.customInstructions = elements.customInstructions.value;
+            savePersonality();
+        });
+
+        // Rename modal functionality
+        elements.renameBtn.addEventListener('click', () => {
+            elements.modalOverlay.style.display = 'block';
+            elements.renameModal.style.display = 'block';
+            elements.renameInput.value = state.activeConversationName;
+            setTimeout(() => elements.renameModal.classList.add('active'), 10);
+        });
+
+        // Modal close events
+        [elements.renameModalClose, elements.renameCancel, elements.modalOverlay].forEach(el => {
+            el.addEventListener('click', () => {
+                elements.renameModal.classList.remove('active');
+                setTimeout(() => {
+                    elements.renameModal.style.display = 'none';
+                    elements.modalOverlay.style.display = 'none';
+                }, 300);
+            });
+        });
+
+        // Prevent clicks inside rename modal from closing it
+        elements.renameModal.addEventListener('click', e => e.stopPropagation());
+
+        // Rename save button
+        elements.renameSave.addEventListener('click', () => {
+            const newName = elements.renameInput.value.trim() || 'Unnamed Conversation';
+            state.activeConversationName = newName;
+            elements.sectionTitle.textContent = newName;
+
+            // Update in chat history
+            const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
+            if (convo) {
+                convo.name = newName;
+
+                // Save to localStorage if enabled
+                if (state.settings.saveHistory) {
+                    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+                    updateHistoryUI();
+                }
+            }
+
+            // Close modal
             elements.renameModal.classList.remove('active');
             setTimeout(() => {
                 elements.renameModal.style.display = 'none';
                 elements.modalOverlay.style.display = 'none';
             }, 300);
+
+            showNotification('Conversation renamed', 'success');
         });
-    });
 
-    // Prevent clicks inside rename modal from closing it
-    elements.renameModal.addEventListener('click', e => e.stopPropagation());
+        // Options modal
+        elements.optionsBtn.addEventListener('click', () => {
+            elements.modalOverlay.style.display = 'block';
+            elements.optionsModal.style.display = 'block';
+            setTimeout(() => elements.optionsModal.classList.add('active'), 10);
+        });
 
-    // Rename save button
-    elements.renameSave.addEventListener('click', () => {
-        const newName = elements.renameInput.value.trim() || 'Unnamed Conversation';
-        state.activeConversationName = newName;
-        elements.sectionTitle.textContent = newName;
+        // Options modal close
+        [elements.optionsModalClose, elements.modalOverlay].forEach(el => {
+            el.addEventListener('click', () => {
+                elements.optionsModal.classList.remove('active');
+                setTimeout(() => {
+                    elements.optionsModal.style.display = 'none';
+                    elements.modalOverlay.style.display = 'none';
+                }, 300);
+            });
+        });
 
-        // Update in chat history
-        const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
-        if (convo) {
-            convo.name = newName;
+        // Prevent clicks inside options modal from closing it
+        elements.optionsModal.addEventListener('click', e => e.stopPropagation());
 
-            // Save to localStorage if enabled
-            if (state.settings.saveHistory) {
-                localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-                updateHistoryUI();
+        // Export button
+        elements.exportBtn.addEventListener('click', () => {
+            const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
+            if (!convo?.messages?.length) {
+                showNotification('No messages to export', 'warning');
+                return;
             }
-        }
 
-        // Close modal
-        elements.renameModal.classList.remove('active');
-        setTimeout(() => {
-            elements.renameModal.style.display = 'none';
-            elements.modalOverlay.style.display = 'none';
-        }, 300);
+            let exportText = `# ${convo.name || 'Conversation'}\n\n`;
+            convo.messages.forEach(msg => {
+                exportText += `## ${msg.role === 'user' ? 'You' : 'Wahab AI'}\n${msg.content}\n\n`;
+            });
 
-        showNotification('Conversation renamed', 'success');
-    });
+            // Create and download the file
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${convo.name || 'conversation'}-export.md`;
+            a.click();
+            URL.revokeObjectURL(url);
 
-    // Options modal
-    elements.optionsBtn.addEventListener('click', () => {
-        elements.modalOverlay.style.display = 'block';
-        elements.optionsModal.style.display = 'block';
-        setTimeout(() => elements.optionsModal.classList.add('active'), 10);
-    });
+            showNotification('Conversation exported as Markdown', 'success');
+        });
 
-    // Options modal close
-    [elements.optionsModalClose, elements.modalOverlay].forEach(el => {
-        el.addEventListener('click', () => {
+        // Attach file button (simulated functionality)
+        elements.attachFileBtn.addEventListener('click', () => {
+            showNotification('File attachment coming soon', 'info');
+        });
+
+        // Voice input button
+        elements.voiceInputBtn.addEventListener('click', () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                showNotification('Speech recognition not supported in your browser', 'error');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+
+            if (elements.voiceInputBtn.classList.contains('active')) {
+                // Stop listening
+                recognition.stop();
+                elements.voiceInputBtn.classList.remove('active');
+                showNotification('Voice input stopped', 'info');
+            } else {
+                // Start listening
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    elements.voiceInputBtn.classList.add('active');
+                    showNotification('Listening...', 'info');
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    elements.chatInput.value = transcript;
+                    resizeInput();
+                    showNotification('Voice input received', 'success');
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error', event.error);
+                    elements.voiceInputBtn.classList.remove('active');
+                    showNotification(`Error: ${event.error}`, 'error');
+                };
+
+                recognition.onend = () => {
+                    elements.voiceInputBtn.classList.remove('active');
+                };
+
+                recognition.start();
+            }
+        });
+
+        // Library search
+        elements.searchHistoryBtn.addEventListener('click', async () => {
+            const searchTerm = await showPopup({
+                type: 'prompt',
+                title: 'Search History',
+                message: 'Enter a search term to find in your conversation history:',
+                placeholder: 'Type search term...',
+                confirmText: 'Search'
+            });
+
+            if (searchTerm?.trim()) {
+                searchConversationHistory(searchTerm.trim());
+            }
+        });
+
+        // Clear history
+        elements.clearHistoryBtn.addEventListener('click', async () => {
+            const confirmed = await showPopup({
+                type: 'confirm',
+                title: 'Delete All History',
+                message: 'Are you sure you want to delete all conversation history? This cannot be undone.',
+                confirmText: 'Delete All',
+                className: 'danger-popup'
+            });
+
+            if (confirmed) {
+                clearAllHistory();
+            }
+        });
+
+        // Delete conversation
+        elements.deleteConversationBtn.addEventListener('click', async () => {
+            // Close options modal first
             elements.optionsModal.classList.remove('active');
             setTimeout(() => {
                 elements.optionsModal.style.display = 'none';
                 elements.modalOverlay.style.display = 'none';
             }, 300);
-        });
-    });
 
-    // Prevent clicks inside options modal from closing it
-    elements.optionsModal.addEventListener('click', e => e.stopPropagation());
-
-    // Export button
-    elements.exportBtn.addEventListener('click', () => {
-        const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
-        if (!convo?.messages?.length) {
-            showNotification('No messages to export', 'warning');
-            return;
-        }
-
-        let exportText = `# ${convo.name || 'Conversation'}\n\n`;
-        convo.messages.forEach(msg => {
-            exportText += `## ${msg.role === 'user' ? 'You' : 'Wahab AI'}\n${msg.content}\n\n`;
-        });
-
-        // Create and download the file
-        const blob = new Blob([exportText], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${convo.name || 'conversation'}-export.md`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        showNotification('Conversation exported as Markdown', 'success');
-    });
-
-    // Attach file button (simulated functionality)
-    elements.attachFileBtn.addEventListener('click', () => {
-        showNotification('File attachment coming soon', 'info');
-    });
-
-    // Voice input button
-    elements.voiceInputBtn.addEventListener('click', () => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        if (!SpeechRecognition) {
-            showNotification('Speech recognition not supported in your browser', 'error');
-            return;
-        }
-
-        const recognition = new SpeechRecognition();
-
-        if (elements.voiceInputBtn.classList.contains('active')) {
-            // Stop listening
-            recognition.stop();
-            elements.voiceInputBtn.classList.remove('active');
-            showNotification('Voice input stopped', 'info');
-        } else {
-            // Start listening
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-
-            recognition.onstart = () => {
-                elements.voiceInputBtn.classList.add('active');
-                showNotification('Listening...', 'info');
-            };
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                elements.chatInput.value = transcript;
-                resizeInput();
-                showNotification('Voice input received', 'success');
-            };
-
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error', event.error);
-                elements.voiceInputBtn.classList.remove('active');
-                showNotification(`Error: ${event.error}`, 'error');
-            };
-
-            recognition.onend = () => {
-                elements.voiceInputBtn.classList.remove('active');
-            };
-
-            recognition.start();
-        }
-    });
-
-    // Library search
-    elements.searchHistoryBtn.addEventListener('click', async () => {
-        const searchTerm = await showPopup({
-            type: 'prompt',
-            title: 'Search History',
-            message: 'Enter a search term to find in your conversation history:',
-            placeholder: 'Type search term...',
-            confirmText: 'Search'
-        });
-
-        if (searchTerm?.trim()) {
-            searchConversationHistory(searchTerm.trim());
-        }
-    });
-
-    // Clear history
-    elements.clearHistoryBtn.addEventListener('click', async () => {
-        const confirmed = await showPopup({
-            type: 'confirm',
-            title: 'Delete All History',
-            message: 'Are you sure you want to delete all conversation history? This cannot be undone.',
-            confirmText: 'Delete All',
-            className: 'danger-popup'
-        });
-
-        if (confirmed) {
-            clearAllHistory();
-        }
-    });
-
-    // Delete conversation
-    elements.deleteConversationBtn.addEventListener('click', async () => {
-        // Close options modal first
-        elements.optionsModal.classList.remove('active');
-        setTimeout(() => {
-            elements.optionsModal.style.display = 'none';
-            elements.modalOverlay.style.display = 'none';
-        }, 300);
-
-        // Ask for confirmation
-        const confirmed = await showPopup({
-            type: 'confirm',
-            title: 'Delete Conversation',
-            message: 'Are you sure you want to delete this conversation? This cannot be undone.',
-            confirmText: 'Delete',
-            className: 'danger-popup'
-        });
-
-        if (confirmed) {
-            deleteCurrentConversation();
-        }
-    });
-
-    // Reset settings
-    elements.resetSettingsBtn.addEventListener('click', async () => {
-        const confirmed = await showPopup({
-            type: 'confirm',
-            title: 'Reset Settings',
-            message: 'Are you sure you want to reset all settings to defaults?',
-            confirmText: 'Reset',
-            cancelText: 'Cancel'
-        });
-
-        if (confirmed) {
-            // Reset state settings to defaults
-            Object.assign(state.settings, {
-                theme: 'dark',
-                saveHistory: true,
-                shareData: false,
-                language: 'en-US',
-                voiceOutput: 'none'
+            // Ask for confirmation
+            const confirmed = await showPopup({
+                type: 'confirm',
+                title: 'Delete Conversation',
+                message: 'Are you sure you want to delete this conversation? This cannot be undone.',
+                confirmText: 'Delete',
+                className: 'danger-popup'
             });
 
-            // Update UI to reflect reset settings
-            elements.historyToggle.classList.add('active');
-            elements.usageToggle.classList.remove('active');
-            document.body.classList.remove('light-theme');
-            elements.darkThemeToggle.classList.add('active');
-            elements.lightThemeToggle.classList.remove('active');
+            if (confirmed) {
+                deleteCurrentConversation();
+            }
+        });
 
-            // Save reset settings
-            saveSettings();
-            showNotification('Settings reset to defaults', 'success');
-        }
-    });
+        // Reset settings
+        elements.resetSettingsBtn.addEventListener('click', async () => {
+            const confirmed = await showPopup({
+                type: 'confirm',
+                title: 'Reset Settings',
+                message: 'Are you sure you want to reset all settings to defaults?',
+                confirmText: 'Reset',
+                cancelText: 'Cancel'
+            });
 
-    // Mobile options for rename and export
-    document.getElementById('rename-option').addEventListener('click', () => {
-        // First close the options modal
-        elements.optionsModal.classList.remove('active');
-        setTimeout(() => {
-            elements.optionsModal.style.display = 'none';
-            elements.modalOverlay.style.display = 'none';
-        }, 300);
+            if (confirmed) {
+                // Reset state settings to defaults
+                Object.assign(state.settings, {
+                    theme: 'dark',
+                    saveHistory: true,
+                    shareData: false,
+                    language: 'en-US',
+                    voiceOutput: 'none'
+                });
 
-        // Then open the rename modal (reuse existing functionality)
-        setTimeout(() => {
-            elements.modalOverlay.style.display = 'block';
-            elements.renameModal.style.display = 'block';
-            elements.renameInput.value = state.activeConversationName;
-            setTimeout(() => elements.renameModal.classList.add('active'), 10);
-        }, 350);
-    });
+                // Update UI to reflect reset settings
+                elements.historyToggle.classList.add('active');
+                elements.usageToggle.classList.remove('active');
+                document.body.classList.remove('light-theme');
+                elements.darkThemeToggle.classList.add('active');
+                elements.lightThemeToggle.classList.remove('active');
 
-    document.getElementById('export-option').addEventListener('click', () => {
-        // Close the options modal first
-        elements.optionsModal.classList.remove('active');
-        setTimeout(() => {
-            elements.optionsModal.style.display = 'none';
-            elements.modalOverlay.style.display = 'none';
-        }, 300);
+                // Save reset settings
+                saveSettings();
+                showNotification('Settings reset to defaults', 'success');
+            }
+        });
 
-        // Then trigger the export functionality (reuse existing functionality)
-        setTimeout(() => {
-            // This calls the same function as the regular export button
-            const exportEvent = new Event('click');
-            elements.exportBtn.dispatchEvent(exportEvent);
-        }, 350);
-    });
+        // Mobile options for rename and export
+        document.getElementById('rename-option').addEventListener('click', () => {
+            // First close the options modal
+            elements.optionsModal.classList.remove('active');
+            setTimeout(() => {
+                elements.optionsModal.style.display = 'none';
+                elements.modalOverlay.style.display = 'none';
+            }, 300);
 
-}
+            // Then open the rename modal (reuse existing functionality)
+            setTimeout(() => {
+                elements.modalOverlay.style.display = 'block';
+                elements.renameModal.style.display = 'block';
+                elements.renameInput.value = state.activeConversationName;
+                setTimeout(() => elements.renameModal.classList.add('active'), 10);
+            }, 350);
+        });
 
-// Initialize the application
-init();
+        document.getElementById('export-option').addEventListener('click', () => {
+            // Close the options modal first
+            elements.optionsModal.classList.remove('active');
+            setTimeout(() => {
+                elements.optionsModal.style.display = 'none';
+                elements.modalOverlay.style.display = 'none';
+            }, 300);
+
+            // Then trigger the export functionality (reuse existing functionality)
+            setTimeout(() => {
+                // This calls the same function as the regular export button
+                const exportEvent = new Event('click');
+                elements.exportBtn.dispatchEvent(exportEvent);
+            }, 350);
+        });
+
+    }
+
+    // Initialize the application
+    init();
 });
