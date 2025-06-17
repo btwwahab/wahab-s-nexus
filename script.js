@@ -477,6 +477,12 @@ async function handleTextToSpeech(speakerBtn, text) {
         return;
     }
 
+    // Additional check for production environments
+    if (window.location.protocol === 'https:' && !document.hasFocus()) {
+        showNotification('Please click in the browser window first, then try again', 'warning');
+        return;
+    }
+
     // Stop any other active speech first
     window.speechSynthesis.cancel();
     
@@ -490,8 +496,8 @@ async function handleTextToSpeech(speakerBtn, text) {
     showNotification('Preparing to read message aloud...', 'info');
 
     try {
-        // Wait a moment for cancellation to complete
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Wait longer for cancellation to complete on production
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Clean the text - remove HTML tags and fix common issues
         const cleanText = text
@@ -510,36 +516,49 @@ async function handleTextToSpeech(speakerBtn, text) {
             return;
         }
 
-        // Limit text length to prevent errors
-        const maxLength = 1000;
+        // Limit text length more aggressively for production
+        const maxLength = 500; // Reduced from 1000
         const textToSpeak = cleanText.length > maxLength ? 
             cleanText.substring(0, maxLength) + '...' : cleanText;
 
+        // Wait for voices to be loaded (important for production)
+        const voices = await getBestVoice('male');
+        if (!voices && window.speechSynthesis.getVoices().length === 0) {
+            showNotification('Speech voices not yet loaded. Please try again in a moment.', 'warning');
+            return;
+        }
+
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
-        // Set basic properties
+        // Set basic properties with more conservative settings
         utterance.lang = 'en-US';
-        utterance.rate = 0.9;
+        utterance.rate = 0.8; // Slower rate for better compatibility
         utterance.pitch = 1.0;
-        utterance.volume = 1.0;
+        utterance.volume = 0.8; // Slightly lower volume
 
-        // Try to get a voice
+        // Try to get a voice with better error handling
         try {
             const voice = await getBestVoice('male');
             if (voice) {
                 utterance.voice = voice;
+                console.log('Using voice:', voice.name);
+            } else {
+                console.log('Using default voice');
             }
         } catch (voiceError) {
             console.warn('Could not set voice:', voiceError);
+            // Continue with default voice
         }
 
         // Track this specific utterance
         let isThisUtteranceActive = true;
         let wasStoppedByUser = false;
+        let hasStarted = false;
 
-        // Set up event handlers
+        // Set up event handlers with better error handling
         utterance.onstart = () => {
             if (isThisUtteranceActive) {
+                hasStarted = true;
                 speakerBtn.classList.add('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
                 showNotification('Reading message aloud', 'info');
@@ -554,25 +573,27 @@ async function handleTextToSpeech(speakerBtn, text) {
                 speakerBtn.classList.remove('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
                 
-                // Check if it was interrupted by user action
-                if (event.error === 'interrupted') {
-                    wasStoppedByUser = true;
-                    showNotification('Speech stopped by user', 'info');
+                // Don't show error for "interrupted" or if speech never started
+                if (event.error === 'interrupted' || !hasStarted) {
+                    if (hasStarted) {
+                        wasStoppedByUser = true;
+                        showNotification('Speech stopped by user', 'info');
+                    }
                 } else {
-                    // Handle other errors
-                    let errorMessage = 'Error while reading message';
+                    // Handle other errors with more specific messages
+                    let errorMessage = 'Speech synthesis failed';
                     switch (event.error) {
                         case 'network':
                             errorMessage = 'Network error during speech';
                             break;
                         case 'synthesis-unavailable':
-                            errorMessage = 'Speech synthesis unavailable';
+                            errorMessage = 'Speech synthesis unavailable. Try refreshing the page.';
                             break;
                         case 'synthesis-failed':
-                            errorMessage = 'Speech synthesis failed';
+                            errorMessage = 'Speech synthesis failed. Try a shorter message.';
                             break;
                         case 'audio-busy':
-                            errorMessage = 'Audio system is busy';
+                            errorMessage = 'Audio system is busy. Please try again.';
                             break;
                         case 'audio-hardware':
                             errorMessage = 'Audio hardware error';
@@ -589,6 +610,9 @@ async function handleTextToSpeech(speakerBtn, text) {
                         case 'invalid-argument':
                             errorMessage = 'Invalid text for speech synthesis';
                             break;
+                        case 'not-allowed':
+                            errorMessage = 'Speech synthesis not allowed. Please interact with the page first.';
+                            break;
                         default:
                             errorMessage = `Speech error: ${event.error}`;
                     }
@@ -604,8 +628,8 @@ async function handleTextToSpeech(speakerBtn, text) {
                 speakerBtn.classList.remove('speaking');
                 speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
                 
-                // Only show completion message if it wasn't stopped by user
-                if (!wasStoppedByUser) {
+                // Only show completion message if it wasn't stopped by user and actually started
+                if (!wasStoppedByUser && hasStarted) {
                     showNotification('Finished reading message', 'success');
                 }
             }
@@ -632,14 +656,41 @@ async function handleTextToSpeech(speakerBtn, text) {
         speakerBtn.currentUtterance = utterance;
         speakerBtn.isUtteranceActive = () => isThisUtteranceActive;
 
+        // Add timeout as fallback
+        const timeoutId = setTimeout(() => {
+            if (isThisUtteranceActive && !hasStarted) {
+                console.warn('Speech did not start within timeout');
+                window.speechSynthesis.cancel();
+                speakerBtn.classList.remove('speaking');
+                speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                showNotification('Speech synthesis timed out. Please try again.', 'warning');
+                isThisUtteranceActive = false;
+            }
+        }, 5000); // 5 second timeout
+
+        // Clear timeout when speech starts
+        const originalOnStart = utterance.onstart;
+        utterance.onstart = () => {
+            clearTimeout(timeoutId);
+            if (originalOnStart) originalOnStart();
+        };
+
         // Speak the text
+        console.log('Starting speech synthesis...');
         window.speechSynthesis.speak(utterance);
+
+        // Additional check for browsers that need a kickstart
+        setTimeout(() => {
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+            }
+        }, 100);
 
     } catch (error) {
         console.error('Text-to-speech error:', error);
         speakerBtn.classList.remove('speaking');
         speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-        showNotification('Could not read message aloud', 'error');
+        showNotification('Could not initialize text-to-speech', 'error');
     }
 }
 
@@ -1303,50 +1354,87 @@ function fetchBotResponse(userMessage) {
         });
     }
 
-    /**
-     * Find the best voice based on gender
-     * @param {string} gender - Preferred gender ('male' or 'female')
-     * @returns {Promise<SpeechSynthesisVoice>} Best matching voice
-     */
-    async function getBestVoice(gender = null) {
-        const voices = await getSpeechVoices();
+/**
+ * Find the best voice based on gender
+ * @param {string} gender - Preferred gender ('male' or 'female')
+ * @returns {Promise<SpeechSynthesisVoice>} Best matching voice
+ */
+async function getBestVoice(gender = null) {
+    return new Promise((resolve) => {
+        let voices = window.speechSynthesis.getVoices();
 
-        console.log("Available voices:", voices.map(v => `${v.name} (${v.lang})`));
+        const processVoices = () => {
+            console.log("Available voices:", voices.map(v => `${v.name} (${v.lang})`));
 
-        if (!voices.length) return null;
-
-        // Try to find voice based on gender
-        if (gender) {
-            // Common patterns in voice names
-            const femalePatterns = ['female', 'woman', 'girl', 'fiona', 'samantha', 'karen', 'moira', 'tessa', 'zira'];
-            const malePatterns = ['male', 'man', 'boy', 'guy', 'david', 'mark', 'daniel', 'alex', 'tom'];
-            const patterns = gender === 'female' ? femalePatterns : malePatterns;
-
-            // First try to find English voices with the gender
-            const englishVoiceWithGender = voices.find(voice =>
-                voice.lang.startsWith('en') &&
-                patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
-            );
-
-            if (englishVoiceWithGender) {
-                console.log(`Selected ${gender} voice: ${englishVoiceWithGender.name}`);
-                return englishVoiceWithGender;
+            if (!voices.length) {
+                console.warn('No voices available');
+                resolve(null);
+                return;
             }
 
-            // If no English voice with gender, try any voice with the gender
-            const anyVoiceWithGender = voices.find(voice =>
-                patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
-            );
+            // Try to find voice based on gender
+            if (gender) {
+                const femalePatterns = ['female', 'woman', 'girl', 'fiona', 'samantha', 'karen', 'moira', 'tessa', 'zira', 'susan', 'allison'];
+                const malePatterns = ['male', 'man', 'boy', 'guy', 'david', 'mark', 'daniel', 'alex', 'tom', 'fred', 'jorge'];
+                const patterns = gender === 'female' ? femalePatterns : malePatterns;
 
-            if (anyVoiceWithGender) {
-                console.log(`Selected ${gender} voice: ${anyVoiceWithGender.name}`);
-                return anyVoiceWithGender;
+                // First try to find English voices with the gender
+                const englishVoiceWithGender = voices.find(voice =>
+                    voice.lang.startsWith('en') &&
+                    patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
+                );
+
+                if (englishVoiceWithGender) {
+                    console.log(`Selected ${gender} voice: ${englishVoiceWithGender.name}`);
+                    resolve(englishVoiceWithGender);
+                    return;
+                }
+
+                // If no English voice with gender, try any voice with the gender
+                const anyVoiceWithGender = voices.find(voice =>
+                    patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
+                );
+
+                if (anyVoiceWithGender) {
+                    console.log(`Selected ${gender} voice: ${anyVoiceWithGender.name}`);
+                    resolve(anyVoiceWithGender);
+                    return;
+                }
             }
+
+            // Default to first English voice or any voice
+            const defaultVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+            console.log('Using default voice:', defaultVoice?.name);
+            resolve(defaultVoice);
+        };
+
+        if (voices.length) {
+            processVoices();
+        } else {
+            // Wait for voices to load (important for production)
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            const checkVoices = () => {
+                voices = window.speechSynthesis.getVoices();
+                attempts++;
+                
+                if (voices.length > 0) {
+                    processVoices();
+                } else if (attempts < maxAttempts) {
+                    setTimeout(checkVoices, 200);
+                } else {
+                    console.warn('Voices failed to load after maximum attempts');
+                    resolve(null);
+                }
+            };
+
+            // Try multiple approaches to load voices
+            window.speechSynthesis.addEventListener('voiceschanged', processVoices, { once: true });
+            setTimeout(checkVoices, 100);
         }
-
-        // Default to first English voice or any voice
-        return voices.find(v => v.lang.startsWith('en')) || voices[0];
-    }
+    });
+}
 
     /**
      * Search conversation history
