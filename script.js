@@ -95,23 +95,63 @@ const state = {
     // Chat history for API context (separate from state.chatHistory for API usage)
     let chatHistory = [];
 
-    /**
-     * Initialization
-     */
-    function init() {
-        loadSavedState();
-        initializeTheme();
-        initParticles();
-        // Check if an active conversation was loaded from localStorage
-        const activeConvId = localStorage.getItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-        const hasActiveConversation = state.chatHistory.some(c => c.id === activeConvId);
-
-        // Only create a new conversation if we don't have an active one
-        if (!hasActiveConversation) {
-            createNewConversation();
+/**
+ * Initialization
+ */
+function init() {
+    // Load settings and personality
+    loadSavedState();
+    initializeTheme();
+    initParticles();
+    
+    // Handle conversation loading
+    if (state.settings.saveHistory) {
+        try {
+            const savedHistory = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
+            if (savedHistory) {
+                state.chatHistory = JSON.parse(savedHistory);
+                updateHistoryUI();
+                
+                // Check for an active conversation
+                const activeConvId = localStorage.getItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
+                if (activeConvId) {
+                    const conversation = state.chatHistory.find(c => c.id === activeConvId);
+                    if (conversation) {
+                        // Load this conversation
+                        loadConversation(activeConvId);
+                    } else if (state.chatHistory.length > 0) {
+                        // If active conversation not found but history exists, load most recent
+                        const mostRecent = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
+                        loadConversation(mostRecent.id);
+                    }
+                } else if (state.chatHistory.length > 0) {
+                    // If no active conversation but history exists, load the most recent one
+                    const mostRecent = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
+                    loadConversation(mostRecent.id);
+                } else {
+                    // Empty UI state
+                    elements.chatMessages.innerHTML = '';
+                    elements.sectionTitle.textContent = "Select a conversation";
+                }
+            } else {
+                // Empty UI state
+                elements.chatMessages.innerHTML = '';
+                elements.sectionTitle.textContent = "Start a new conversation";
+                showEmptyHistoryState();
+            }
+        } catch (error) {
+            console.error('Error loading conversation history:', error);
+            showNotification('Failed to load conversation history', 'error');
+            showEmptyHistoryState();
         }
-        setupEventListeners();
+    } else {
+        // History saving disabled - just show empty state
+        elements.chatMessages.innerHTML = '';
+        elements.sectionTitle.textContent = "Start a new conversation";
     }
+    
+    setupEventListeners();
+}
 
     /**
      * Load saved state from localStorage
