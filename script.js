@@ -55,26 +55,27 @@ document.addEventListener('DOMContentLoaded', function () {
         clearHistoryBtn: document.querySelector('#library-content .action-btn[title="Clear All"]')
     };
 
-    // APP STATE - using a single state object for better organization
-    const state = {
-        chatHistory: [],
-        isTyping: false,
-        activeConversationId: generateId(),
-        activeConversationName: 'New Conversation',
-        settings: {
-            theme: 'dark',
-            saveHistory: true,
-            shareData: false,
-            language: 'en-US',
-            voiceOutput: 'none',
-            model: 'llama-3.3-70b-versatile',
-            messageLimit: 50
-        },
-        personality: {
-            type: 'assistant',
-            customInstructions: ''
-        }
-    };
+// APP STATE - using a single state object for better organization
+const state = {
+    chatHistory: [],
+    isTyping: false,
+    activeConversationId: generateId(),
+    activeConversationName: 'New Conversation',
+    isNewConversation: false, // Add this new property
+    settings: {
+        theme: 'dark',
+        saveHistory: true,
+        shareData: false,
+        language: 'en-US',
+        voiceOutput: 'none',
+        model: 'llama-3.3-70b-versatile',
+        messageLimit: 50
+    },
+    personality: {
+        type: 'assistant',
+        customInstructions: ''
+    }
+};
 
     // Constants for better maintainability
     const STORAGE_KEYS = {
@@ -971,63 +972,112 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchBotResponse(message);
     }
 
-    /**
-     * Save message to current conversation
-     * @param {string} role - Role of message sender
-     * @param {string} content - Message content
-     */
-    function saveMessageToConversation(role, content) {
-        // Find current conversation in history or create a new one
-        let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
+/**
+ * Save message to current conversation
+ * @param {string} role - Role of message sender
+ * @param {string} content - Message content
+ */
+function saveMessageToConversation(role, content) {
+    // Find current conversation in history or create a new one
+    let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
 
-        if (!conversation) {
-            conversation = {
-                id: state.activeConversationId,
-                name: state.activeConversationName,
-                timestamp: Date.now(),
-                messages: []
-            };
-            state.chatHistory.unshift(conversation);
+    // If this is user's first message in a new conversation, generate a name
+    if (role === 'user' && state.isNewConversation) {
+        state.isNewConversation = false;
+        
+        // Generate name from first user message
+        state.activeConversationName = generateConversationName(content);
+        elements.sectionTitle.textContent = state.activeConversationName;
+        
+        // Create the conversation object now (wasn't saved previously)
+        conversation = {
+            id: state.activeConversationId,
+            name: state.activeConversationName,
+            timestamp: Date.now(),
+            messages: []
+        };
+        
+        // Add the welcome message that was displayed but not saved
+        if (chatHistory.length > 0 && chatHistory[0].role === 'assistant') {
+            conversation.messages.push({
+                role: 'assistant',
+                content: chatHistory[0].content,
+                timestamp: Date.now() - 1000 // Slightly earlier timestamp
+            });
         }
-
-        // Add message to conversation
-        conversation.messages.push({
-            role,
-            content,
-            timestamp: Date.now()
-        });
-
-        // Check if we've exceeded the message limit
-        if (conversation.messages.length > state.settings.messageLimit) {
-            // Remove oldest messages from UI
-            const messagesToRemove = conversation.messages.length - state.settings.messageLimit;
-
-            // Remove oldest messages from DOM
-            for (let i = 0; i < messagesToRemove; i++) {
-                if (elements.chatMessages.firstChild) {
-                    elements.chatMessages.removeChild(elements.chatMessages.firstChild);
-                }
-            }
-
-            // Remove oldest messages from conversation array
-            conversation.messages = conversation.messages.slice(messagesToRemove);
-
-            // Also update chatHistory for API context to keep in sync
-            chatHistory = chatHistory.slice(messagesToRemove);
-
-            // Show notification
-            showNotification('Older messages have been removed to improve performance', 'info');
-        }
-
-        // Update timestamp
-        conversation.timestamp = Date.now();
-
-        // Save to localStorage if enabled
-        if (state.settings.saveHistory) {
-            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-            updateHistoryUI();
-        }
+        
+        state.chatHistory.unshift(conversation);
     }
+
+    if (!conversation) {
+        conversation = {
+            id: state.activeConversationId,
+            name: state.activeConversationName,
+            timestamp: Date.now(),
+            messages: []
+        };
+        state.chatHistory.unshift(conversation);
+    }
+
+    // Add message to conversation
+    conversation.messages.push({
+        role,
+        content,
+        timestamp: Date.now()
+    });
+
+    // Rest of the function remains the same...
+    // (Check message limits, update timestamp, save to localStorage)
+    
+    // Check if we've exceeded the message limit
+    if (conversation.messages.length > state.settings.messageLimit) {
+        // Remove oldest messages from UI
+        const messagesToRemove = conversation.messages.length - state.settings.messageLimit;
+
+        // Remove oldest messages from DOM
+        for (let i = 0; i < messagesToRemove; i++) {
+            if (elements.chatMessages.firstChild) {
+                elements.chatMessages.removeChild(elements.chatMessages.firstChild);
+            }
+        }
+
+        // Remove oldest messages from conversation array
+        conversation.messages = conversation.messages.slice(messagesToRemove);
+
+        // Also update chatHistory for API context to keep in sync
+        chatHistory = chatHistory.slice(messagesToRemove);
+
+        // Show notification
+        showNotification('Older messages have been removed to improve performance', 'info');
+    }
+
+    // Update timestamp
+    conversation.timestamp = Date.now();
+
+    // Save to localStorage if enabled
+    if (state.settings.saveHistory) {
+        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+        updateHistoryUI();
+    }
+}
+
+/**
+ * Generate a conversation name from the first user message
+ * @param {string} message - First user message
+ * @returns {string} Generated conversation name
+ */
+function generateConversationName(message) {
+    // Simple approach: Take first 4-5 words, up to 30 chars
+    const words = message.split(' ');
+    let name = words.slice(0, 5).join(' ');
+    
+    // Truncate if too long
+    if (name.length > 30) {
+        name = name.substring(0, 27) + '...';
+    }
+    
+    return name;
+}
 
     /**
      * Get a general response for fallback
@@ -1151,6 +1201,11 @@ const personalityResponses = {
                     // Save to conversation
                     saveMessageToConversation('assistant', responseContent);
                     updateSuggestionChips();
+
+const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
+if (currentConvo && currentConvo.messages.length <= 2) {
+    generateAIConversationName(userMessage, responseContent);
+}
                 } else {
                     throw new Error('Invalid response format from API');
                 }
@@ -1175,7 +1230,59 @@ const personalityResponses = {
             });
     }
 
-
+/**
+ * Use AI to generate a better conversation name
+ */
+function generateAIConversationName(userMsg, aiReply) {
+    // Use existing API call structure
+    fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: state.settings.model,
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a helpful assistant that generates short, descriptive titles."
+                },
+                {
+                    role: "user",
+                    content: `Based on this conversation, generate a concise title (max 5 words):\nUser: ${userMsg}\nAI: ${aiReply.substring(0, 100)}`
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 20
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.choices && data.choices[0] && data.choices[0].message) {
+            let title = data.choices[0].message.content.trim();
+            // Remove quotes if present
+            title = title.replace(/^["'](.*)["']$/, '$1');
+            
+            // Update conversation name
+            state.activeConversationName = title;
+            elements.sectionTitle.textContent = title;
+            
+            // Update in chat history
+            const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
+            if (convo) {
+                convo.name = title;
+                
+                // Save to localStorage if enabled
+                if (state.settings.saveHistory) {
+                    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+                    updateHistoryUI();
+                }
+            }
+        }
+    })
+    .catch(err => {
+        console.warn('Failed to generate AI title:', err);
+        // The default title from the first message will remain
+    });
+}
 
     /**
      * Process API response and update UI
@@ -1198,32 +1305,33 @@ const personalityResponses = {
     /**
      * Create new conversation
      */
-    function createNewConversation() {
-        // Generate new conversation ID
-        state.activeConversationId = generateId();
-        state.activeConversationName = 'New Conversation';
+function createNewConversation() {
+    // Generate new conversation ID
+    state.activeConversationId = generateId();
+    state.activeConversationName = 'New Conversation';
 
-        // Update UI
-        elements.sectionTitle.textContent = state.activeConversationName;
-        elements.chatMessages.innerHTML = '';
+    // Update UI
+    elements.sectionTitle.textContent = state.activeConversationName;
+    elements.chatMessages.innerHTML = '';
 
-        // Reset chat history for API context
-        chatHistory = [];
+    // Reset chat history for API context
+    chatHistory = [];
 
-        // Add welcome message
-        const welcomeMessage = "Hello! I'm Wahab , your AI assistant. How can I help you today?";
-        addMessageToUI('assistant', welcomeMessage);
+    // Add welcome message
+    const welcomeMessage = "Hello! I'm Wahab , your AI assistant. How can I help you today?";
+    addMessageToUI('assistant', welcomeMessage);
 
-        // Save welcome message to conversation
-        saveMessageToConversation('assistant', welcomeMessage);
-
-        // Add to API context history
-        chatHistory.push({
-            role: 'assistant',
-            content: welcomeMessage
-        });
-        updateSuggestionChips(true);
-    }
+    // Add to API context history but DON'T save to localStorage yet
+    chatHistory.push({
+        role: 'assistant',
+        content: welcomeMessage
+    });
+    
+    // Set flag to indicate this is a new conversation without user messages
+    state.isNewConversation = true;
+    
+    updateSuggestionChips(true);
+}
 
     /**
      * Resize input based on content
