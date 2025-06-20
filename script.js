@@ -1,5 +1,51 @@
 // AI Chatbot - Modern, futuristic implementation (Optimized)
 document.addEventListener('DOMContentLoaded', function () {
+
+
+        function ensureHighlightJsLoaded() {
+        return new Promise((resolve) => {
+            if (typeof hljs !== 'undefined') {
+                console.log('Highlight.js already loaded');
+                resolve();
+                return;
+            }
+            
+            console.warn('Highlight.js not loaded, waiting for it to load...');
+            
+            // Check if script tag exists, if not add it
+            if (!document.querySelector('script[src*="highlight.js"]')) {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/highlight.js@11.5.1/lib/highlight.min.js';
+                document.head.appendChild(script);
+                
+                script.onload = () => {
+                    console.log('Highlight.js dynamically loaded');
+                    resolve();
+                };
+                
+                script.onerror = () => {
+                    console.error('Failed to load highlight.js');
+                    resolve(); // Resolve anyway so the app continues
+                };
+            } else {
+                // Script tag exists but hljs not defined yet, set up a polling mechanism
+                let attempts = 0;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    if (typeof hljs !== 'undefined') {
+                        clearInterval(checkInterval);
+                        console.log('Highlight.js loaded after waiting');
+                        resolve();
+                    } else if (attempts > 20) {
+                        clearInterval(checkInterval);
+                        console.warn('Gave up waiting for highlight.js');
+                        resolve();
+                    }
+                }, 100);
+            }
+        });
+    }
+
     // Cache DOM Elements for better performance
     const elements = {
         // Core UI
@@ -97,7 +143,9 @@ document.addEventListener('DOMContentLoaded', function () {
     /**
      * Initialization
      */
-    function init() {
+    async function init() {
+         await ensureHighlightJsLoaded();
+        loadSavedState();
         loadSavedState();
         initializeTheme();
         initParticles();
