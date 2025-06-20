@@ -2432,3 +2432,11 @@ body.light-theme .markdown-content table {
 body.light-theme .markdown-content th {
     background: rgba(0, 136, 255, 0.1);
 }
+.code-no-highlight {
+    background-color: #282c34;
+    color: #abb2bf;
+    padding: 0.5em;
+    border-radius: 3px;
+    font-family: monospace;
+    white-space: pre-wrap;
+}
