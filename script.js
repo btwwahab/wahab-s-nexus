@@ -55,27 +55,27 @@ document.addEventListener('DOMContentLoaded', function () {
         clearHistoryBtn: document.querySelector('#library-content .action-btn[title="Clear All"]')
     };
 
-// APP STATE - using a single state object for better organization
-const state = {
-    chatHistory: [],
-    isTyping: false,
-    activeConversationId: generateId(),
-    activeConversationName: 'New Conversation',
-    isNewConversation: false, // Add this new property
-    settings: {
-        theme: 'dark',
-        saveHistory: true,
-        shareData: false,
-        language: 'en-US',
-        voiceOutput: 'none',
-        model: 'llama-3.3-70b-versatile',
-        messageLimit: 50
-    },
-    personality: {
-        type: 'assistant',
-        customInstructions: ''
-    }
-};
+    // APP STATE - using a single state object for better organization
+    const state = {
+        chatHistory: [],
+        isTyping: false,
+        activeConversationId: generateId(),
+        activeConversationName: 'New Conversation',
+        isNewConversation: false, // Add this new property
+        settings: {
+            theme: 'dark',
+            saveHistory: true,
+            shareData: false,
+            language: 'en-US',
+            voiceOutput: 'none',
+            model: 'llama-3.3-70b-versatile',
+            messageLimit: 50
+        },
+        personality: {
+            type: 'assistant',
+            customInstructions: ''
+        }
+    };
 
     // Constants for better maintainability
     const STORAGE_KEYS = {
@@ -95,63 +95,63 @@ const state = {
     // Chat history for API context (separate from state.chatHistory for API usage)
     let chatHistory = [];
 
-/**
- * Initialization
- */
-function init() {
-    // Load settings and personality
-    loadSavedState();
-    initializeTheme();
-    initParticles();
-    
-    // Handle conversation loading
-    if (state.settings.saveHistory) {
-        try {
-            const savedHistory = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-            if (savedHistory) {
-                state.chatHistory = JSON.parse(savedHistory);
-                updateHistoryUI();
-                
-                // Check for an active conversation
-                const activeConvId = localStorage.getItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-                if (activeConvId) {
-                    const conversation = state.chatHistory.find(c => c.id === activeConvId);
-                    if (conversation) {
-                        // Load this conversation
-                        loadConversation(activeConvId);
+    /**
+     * Initialization
+     */
+    function init() {
+        // Load settings and personality
+        loadSavedState();
+        initializeTheme();
+        initParticles();
+
+        // Handle conversation loading
+        if (state.settings.saveHistory) {
+            try {
+                const savedHistory = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
+                if (savedHistory) {
+                    state.chatHistory = JSON.parse(savedHistory);
+                    updateHistoryUI();
+
+                    // Check for an active conversation
+                    const activeConvId = localStorage.getItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
+                    if (activeConvId) {
+                        const conversation = state.chatHistory.find(c => c.id === activeConvId);
+                        if (conversation) {
+                            // Load this conversation
+                            loadConversation(activeConvId);
+                        } else if (state.chatHistory.length > 0) {
+                            // If active conversation not found but history exists, load most recent
+                            const mostRecent = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
+                            loadConversation(mostRecent.id);
+                        }
                     } else if (state.chatHistory.length > 0) {
-                        // If active conversation not found but history exists, load most recent
+                        // If no active conversation but history exists, load the most recent one
                         const mostRecent = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
                         loadConversation(mostRecent.id);
+                    } else {
+                        // Empty UI state
+                        elements.chatMessages.innerHTML = '';
+                        elements.sectionTitle.textContent = "Select a conversation";
                     }
-                } else if (state.chatHistory.length > 0) {
-                    // If no active conversation but history exists, load the most recent one
-                    const mostRecent = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
-                    loadConversation(mostRecent.id);
                 } else {
                     // Empty UI state
                     elements.chatMessages.innerHTML = '';
-                    elements.sectionTitle.textContent = "Select a conversation";
+                    elements.sectionTitle.textContent = "Start a new conversation";
+                    showEmptyHistoryState();
                 }
-            } else {
-                // Empty UI state
-                elements.chatMessages.innerHTML = '';
-                elements.sectionTitle.textContent = "Start a new conversation";
+            } catch (error) {
+                console.error('Error loading conversation history:', error);
+                showNotification('Failed to load conversation history', 'error');
                 showEmptyHistoryState();
             }
-        } catch (error) {
-            console.error('Error loading conversation history:', error);
-            showNotification('Failed to load conversation history', 'error');
-            showEmptyHistoryState();
+        } else {
+            // History saving disabled - just show empty state
+            elements.chatMessages.innerHTML = '';
+            elements.sectionTitle.textContent = "Start a new conversation";
         }
-    } else {
-        // History saving disabled - just show empty state
-        elements.chatMessages.innerHTML = '';
-        elements.sectionTitle.textContent = "Start a new conversation";
+
+        setupEventListeners();
     }
-    
-    setupEventListeners();
-}
 
     /**
      * Load saved state from localStorage
@@ -1012,112 +1012,113 @@ function init() {
         fetchBotResponse(message);
     }
 
-/**
- * Save message to current conversation
- * @param {string} role - Role of message sender
- * @param {string} content - Message content
- */
-function saveMessageToConversation(role, content) {
-    // Find current conversation in history or create a new one
-    let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
+    /**
+     * Save message to current conversation
+     * @param {string} role - Role of message sender
+     * @param {string} content - Message content
+     */
+    function saveMessageToConversation(role, content) {
+        // Find current conversation in history or create a new one
+        let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
 
-    // If this is user's first message in a new conversation, generate a name
-    if (role === 'user' && state.isNewConversation) {
-        state.isNewConversation = false;
-        
-        // Generate name from first user message
-        state.activeConversationName = generateConversationName(content);
-        elements.sectionTitle.textContent = state.activeConversationName;
-        
-        // Create the conversation object now (wasn't saved previously)
-        conversation = {
-            id: state.activeConversationId,
-            name: state.activeConversationName,
-            timestamp: Date.now(),
-            messages: []
-        };
-        
-        // Add the welcome message that was displayed but not saved
-        if (chatHistory.length > 0 && chatHistory[0].role === 'assistant') {
-            conversation.messages.push({
-                role: 'assistant',
-                content: chatHistory[0].content,
-                timestamp: Date.now() - 1000 // Slightly earlier timestamp
-            });
-        }
-        
-        state.chatHistory.unshift(conversation);
-    }
+        // If this is user's first message in a new conversation, set a temporary name
+        if (role === 'user' && state.isNewConversation) {
+            state.isNewConversation = false;
 
-    if (!conversation) {
-        conversation = {
-            id: state.activeConversationId,
-            name: state.activeConversationName,
-            timestamp: Date.now(),
-            messages: []
-        };
-        state.chatHistory.unshift(conversation);
-    }
+            // Set a temporary name with timestamp to ensure uniqueness
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            state.activeConversationName = `New Chat (${timestamp})`;
+            elements.sectionTitle.textContent = state.activeConversationName;
 
-    // Add message to conversation
-    conversation.messages.push({
-        role,
-        content,
-        timestamp: Date.now()
-    });
+            // Create the conversation object now (wasn't saved previously)
+            conversation = {
+                id: state.activeConversationId,
+                name: state.activeConversationName,
+                timestamp: Date.now(),
+                messages: []
+            };
 
-    // Rest of the function remains the same...
-    // (Check message limits, update timestamp, save to localStorage)
-    
-    // Check if we've exceeded the message limit
-    if (conversation.messages.length > state.settings.messageLimit) {
-        // Remove oldest messages from UI
-        const messagesToRemove = conversation.messages.length - state.settings.messageLimit;
-
-        // Remove oldest messages from DOM
-        for (let i = 0; i < messagesToRemove; i++) {
-            if (elements.chatMessages.firstChild) {
-                elements.chatMessages.removeChild(elements.chatMessages.firstChild);
+            // Add the welcome message that was displayed but not saved
+            if (chatHistory.length > 0 && chatHistory[0].role === 'assistant') {
+                conversation.messages.push({
+                    role: 'assistant',
+                    content: chatHistory[0].content,
+                    timestamp: Date.now() - 1000 // Slightly earlier timestamp
+                });
             }
+
+            state.chatHistory.unshift(conversation);
         }
 
-        // Remove oldest messages from conversation array
-        conversation.messages = conversation.messages.slice(messagesToRemove);
+        if (!conversation) {
+            conversation = {
+                id: state.activeConversationId,
+                name: state.activeConversationName,
+                timestamp: Date.now(),
+                messages: []
+            };
+            state.chatHistory.unshift(conversation);
+        }
 
-        // Also update chatHistory for API context to keep in sync
-        chatHistory = chatHistory.slice(messagesToRemove);
+        // Add message to conversation
+        conversation.messages.push({
+            role,
+            content,
+            timestamp: Date.now()
+        });
 
-        // Show notification
-        showNotification('Older messages have been removed to improve performance', 'info');
+        // Rest of the function remains the same...
+        // (Check message limits, update timestamp, save to localStorage)
+
+        // Check if we've exceeded the message limit
+        if (conversation.messages.length > state.settings.messageLimit) {
+            // Remove oldest messages from UI
+            const messagesToRemove = conversation.messages.length - state.settings.messageLimit;
+
+            // Remove oldest messages from DOM
+            for (let i = 0; i < messagesToRemove; i++) {
+                if (elements.chatMessages.firstChild) {
+                    elements.chatMessages.removeChild(elements.chatMessages.firstChild);
+                }
+            }
+
+            // Remove oldest messages from conversation array
+            conversation.messages = conversation.messages.slice(messagesToRemove);
+
+            // Also update chatHistory for API context to keep in sync
+            chatHistory = chatHistory.slice(messagesToRemove);
+
+            // Show notification
+            showNotification('Older messages have been removed to improve performance', 'info');
+        }
+
+        // Update timestamp
+        conversation.timestamp = Date.now();
+
+        // Save to localStorage if enabled
+        if (state.settings.saveHistory) {
+            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+            updateHistoryUI();
+        }
     }
 
-    // Update timestamp
-    conversation.timestamp = Date.now();
+    /**
+     * Generate a conversation name from the first user message
+     * @param {string} message - First user message
+     * @returns {string} Generated conversation name
+     */
+    function generateConversationName(message) {
+        // Simple approach: Take first 4-5 words, up to 30 chars
+        const words = message.split(' ');
+        let name = words.slice(0, 5).join(' ');
 
-    // Save to localStorage if enabled
-    if (state.settings.saveHistory) {
-        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-        updateHistoryUI();
-    }
-}
+        // Truncate if too long
+        if (name.length > 30) {
+            name = name.substring(0, 27) + '...';
+        }
 
-/**
- * Generate a conversation name from the first user message
- * @param {string} message - First user message
- * @returns {string} Generated conversation name
- */
-function generateConversationName(message) {
-    // Simple approach: Take first 4-5 words, up to 30 chars
-    const words = message.split(' ');
-    let name = words.slice(0, 5).join(' ');
-    
-    // Truncate if too long
-    if (name.length > 30) {
-        name = name.substring(0, 27) + '...';
+        return name;
     }
-    
-    return name;
-}
 
     /**
      * Get a general response for fallback
@@ -1133,12 +1134,12 @@ function generateConversationName(message) {
             "I've analyzed your question and here's what I can tell you."
         ];
 
-const personalityResponses = {
-    'assistant': "As your professional assistant, I can provide a clear and concise answer to your inquiry.",
-    'developer': "Looking at this from a technical perspective, let me explain with some code examples.",
-    'teacher': "Let me explain this concept in a way that's easy to understand with some helpful examples.",
-    'creative': "That sparks some interesting ideas! Here's a creative approach to what you're asking about."
-};
+        const personalityResponses = {
+            'assistant': "As your professional assistant, I can provide a clear and concise answer to your inquiry.",
+            'developer': "Looking at this from a technical perspective, let me explain with some code examples.",
+            'teacher': "Let me explain this concept in a way that's easy to understand with some helpful examples.",
+            'creative': "That sparks some interesting ideas! Here's a creative approach to what you're asking about."
+        };
 
         const randomResponse = responses[Math.floor(Math.random() * responses.length)];
         const personalityIntro = personalityResponses[state.personality.type] || '';
@@ -1153,17 +1154,17 @@ const personalityResponses = {
 
 
     function fetchBotResponse(userMessage) {
-    // Ensure chatHistory only contains messages from current conversation
-    const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
-    if (currentConvo && currentConvo.messages) {
-        // Rebuild chatHistory from current conversation to ensure consistency
-        chatHistory = currentConvo.messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-        }));
-    }
-    
-    const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
+        // Ensure chatHistory only contains messages from current conversation
+        const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
+        if (currentConvo && currentConvo.messages) {
+            // Rebuild chatHistory from current conversation to ensure consistency
+            chatHistory = currentConvo.messages.map(msg => ({
+                role: msg.role,
+                content: msg.content
+            }));
+        }
+
+        const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
         // Prepare system message based on personality with additional formatting instructions
         let systemContent = PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant'];
@@ -1252,10 +1253,14 @@ const personalityResponses = {
                     saveMessageToConversation('assistant', responseContent);
                     updateSuggestionChips();
 
-const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
-if (currentConvo && currentConvo.messages.length <= 2) {
-    generateAIConversationName(userMessage, responseContent);
-}
+                    // ALWAYS generate an AI name after the first exchange, not just sometimes
+                    const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
+                    if (currentConvo && currentConvo.messages.length <= 2) {
+                        // Use a more prominent visual indicator that naming is happening
+                        elements.sectionTitle.textContent = "Generating name...";
+                        // Always generate AI name for every new conversation
+                        generateAIConversationName(userMessage, responseContent);
+                    }
                 } else {
                     throw new Error('Invalid response format from API');
                 }
@@ -1280,58 +1285,62 @@ if (currentConvo && currentConvo.messages.length <= 2) {
             });
     }
 
-/**
- * Use AI to generate a better conversation name
- */
+    /**
+     * Use AI to generate a better conversation name
+     */
 function generateAIConversationName(userMsg, aiReply) {
-    // Use existing API call structure
-    fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: state.settings.model,
-            messages: [
-                {
-                    role: "system",
-                    content: "You are a helpful assistant that generates short, descriptive titles."
-                },
-                {
-                    role: "user",
-                    content: `Based on this conversation, generate a concise title (max 5 words):\nUser: ${userMsg}\nAI: ${aiReply.substring(0, 100)}`
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 20
+    // Add a short delay to ensure the API isn't overloaded
+    setTimeout(() => {
+        // Use existing API call structure
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: state.settings.model,
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a helpful assistant that generates short, descriptive titles. Create a clear, specific title that captures the main topic of the conversation. Maximum 5 words."
+                    },
+                    {
+                        role: "user",
+                        content: `Based on this conversation, generate a concise, specific title (max 5 words):\nUser: ${userMsg}\nAI: ${aiReply.substring(0, 100)}`
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 20
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-            let title = data.choices[0].message.content.trim();
-            // Remove quotes if present
-            title = title.replace(/^["'](.*)["']$/, '$1');
-            
-            // Update conversation name
-            state.activeConversationName = title;
-            elements.sectionTitle.textContent = title;
-            
-            // Update in chat history
-            const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
-            if (convo) {
-                convo.name = title;
+        .then(response => response.json())
+        .then(data => {
+            if (data.choices && data.choices[0] && data.choices[0].message) {
+                let title = data.choices[0].message.content.trim();
+                // Remove quotes if present
+                title = title.replace(/^["'](.*)["']$/, '$1');
                 
-                // Save to localStorage if enabled
-                if (state.settings.saveHistory) {
-                    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-                    updateHistoryUI();
+                // Update conversation name
+                state.activeConversationName = title;
+                elements.sectionTitle.textContent = title;
+                
+                // Update in chat history - use both ID and timestamp to ensure uniqueness
+                const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
+                if (convo) {
+                    convo.name = title;
+                    
+                    // Save to localStorage if enabled
+                    if (state.settings.saveHistory) {
+                        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+                        localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
+                        updateHistoryUI();
+                    }
                 }
             }
-        }
-    })
-    .catch(err => {
-        console.warn('Failed to generate AI title:', err);
-        // The default title from the first message will remain
-    });
+        })
+        .catch(err => {
+            console.warn('Failed to generate AI title:', err);
+            showNotification('Could not generate custom title', 'warning');
+        });
+    }, 500); // Short delay before generating name
 }
 
     /**
@@ -1355,48 +1364,48 @@ function generateAIConversationName(userMsg, aiReply) {
     /**
      * Create new conversation
      */
-function createNewConversation() {
-    // Generate new conversation ID
-    state.activeConversationId = generateId();
-    state.activeConversationName = 'New Conversation';
-    
-    // Create empty conversation object right away
-    const newConversation = {
-        id: state.activeConversationId,
-        name: state.activeConversationName,
-        timestamp: Date.now(),
-        messages: []
-    };
-    
-    // Add to chat history immediately
-    state.chatHistory.unshift(newConversation);
-    
-    // Update UI
-    elements.sectionTitle.textContent = state.activeConversationName;
-    elements.chatMessages.innerHTML = '';
-    
-    // IMPORTANT: Completely reset chat history for API context
-    chatHistory = [];
-    
-    // Add welcome message
-    const welcomeMessage = "Hello! I'm Wahab, your AI assistant. How can I help you today?";
-    addMessageToUI('assistant', welcomeMessage);
-    
-    // Add welcome message to chatHistory
-    chatHistory.push({
-        role: 'assistant',
-        content: welcomeMessage
-    });
-    
-    state.isNewConversation = true;
-    updateSuggestionChips(true);
-    
-    // Save to localStorage
-    if (state.settings.saveHistory) {
-        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-        updateHistoryUI();
+    function createNewConversation() {
+        // Generate new conversation ID
+        state.activeConversationId = generateId();
+        state.activeConversationName = 'New Conversation';
+
+        // Create empty conversation object right away
+        const newConversation = {
+            id: state.activeConversationId,
+            name: state.activeConversationName,
+            timestamp: Date.now(),
+            messages: []
+        };
+
+        // Add to chat history immediately
+        state.chatHistory.unshift(newConversation);
+
+        // Update UI
+        elements.sectionTitle.textContent = state.activeConversationName;
+        elements.chatMessages.innerHTML = '';
+
+        // IMPORTANT: Completely reset chat history for API context
+        chatHistory = [];
+
+        // Add welcome message
+        const welcomeMessage = "Hello! I'm Wahab, your AI assistant. How can I help you today?";
+        addMessageToUI('assistant', welcomeMessage);
+
+        // Add welcome message to chatHistory
+        chatHistory.push({
+            role: 'assistant',
+            content: welcomeMessage
+        });
+
+        state.isNewConversation = true;
+        updateSuggestionChips(true);
+
+        // Save to localStorage
+        if (state.settings.saveHistory) {
+            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+            updateHistoryUI();
+        }
     }
-}
 
     /**
      * Resize input based on content
@@ -1828,137 +1837,137 @@ function createNewConversation() {
  * Update suggestion chips with AI-generated suggestions
  * @param {boolean} isInitial - Whether this is the initial loading
  */
-function updateSuggestionChips(isInitial = false) {
-    const suggestionsContainer = document.querySelector('.input-suggestions');
-    
-    // Initial/default suggestions
-    if (isInitial || !chatHistory.length) {
-        const defaultSuggestions = [
-            "Explain quantum computing",
-            "Summarize this article",
-            "Write a poem about nature",
-            "Help debug my code"
-        ];
-        
-        updateSuggestionChipsUI(defaultSuggestions);
-        return;
-    }
-    
-    // Show loading state
-    suggestionsContainer.innerHTML = `
+    function updateSuggestionChips(isInitial = false) {
+        const suggestionsContainer = document.querySelector('.input-suggestions');
+
+        // Initial/default suggestions
+        if (isInitial || !chatHistory.length) {
+            const defaultSuggestions = [
+                "Explain quantum computing",
+                "Summarize this article",
+                "Write a poem about nature",
+                "Help debug my code"
+            ];
+
+            updateSuggestionChipsUI(defaultSuggestions);
+            return;
+        }
+
+        // Show loading state
+        suggestionsContainer.innerHTML = `
         <div class="suggestion-chip loading">Generating suggestions...</div>
     `;
-    
-    // Build prompt for generating suggestions
-    const recentMessages = chatHistory.slice(-4); // Get last 4 messages
-    let context = "";
-    
-    recentMessages.forEach(msg => {
-        context += `${msg.role}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}\n`;
-    });
-    
-    const prompt = `Based on this conversation:\n${context}\n\nGenerate 4 short follow-up questions or topics the user might be interested in asking next. Each should be under 40 characters. Return only the questions as a JSON array ["question1", "question2", "question3", "question4"] with no explanation.`;
-    
-    // Use the existing API
-    fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: state.settings.model,
-            messages: [
-                {
-                    role: "system",
-                    content: "You are a helpful assistant that generates follow-up questions."
-                },
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ],
-            temperature: 0.7,
-            max_tokens: 150
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        try {
-            let suggestions;
-            
-            if (data.choices && data.choices[0] && data.choices[0].message) {
-                const content = data.choices[0].message.content;
-                
-                // Try to parse JSON from the response
-                try {
-                    // Look for array in the response if it's not pure JSON
-                    const match = content.match(/\[.*\]/s);
-                    if (match) {
-                        suggestions = JSON.parse(match[0]);
-                    } else {
-                        suggestions = JSON.parse(content);
-                    }
-                } catch (e) {
-                    // If parsing fails, extract lines that look like suggestions
-                    suggestions = content
-                        .split('\n')
-                        .filter(line => line.trim().length > 0 && line.trim().length < 50)
-                        .map(line => line.replace(/^[0-9-."]*\s*/, '').replace(/^["'](.*)["']$/, '$1'))
-                        .slice(0, 4);
-                }
-            }
-            
-            if (!Array.isArray(suggestions) || suggestions.length === 0) {
-                throw new Error('Failed to parse suggestions');
-            }
-            
-            // Update UI with new suggestions
-            updateSuggestionChipsUI(suggestions);
-        } catch (error) {
-            console.error('Error processing suggestions:', error);
-            // Fall back to generic suggestions
-            updateSuggestionChipsUI([
-                "Tell me more about this",
-                "How does this work?",
-                "Can you give examples?",
-                "What are alternatives?"
-            ]);
-        }
-    })
-    .catch(error => {
-        console.error('Error getting suggestions:', error);
-        // Fall back to generic suggestions
-        updateSuggestionChipsUI([
-            "Tell me more about this",
-            "How does this work?",
-            "Can you give examples?",
-            "What are alternatives?"
-        ]);
-    });
-}
 
-/**
- * Update the suggestion chips in the UI
- * @param {string[]} suggestions - Array of suggestion texts
- */
-function updateSuggestionChipsUI(suggestions) {
-    const suggestionsContainer = document.querySelector('.input-suggestions');
-    suggestionsContainer.innerHTML = '';
-    
-    suggestions.forEach(text => {
-        const chip = document.createElement('div');
-        chip.className = 'suggestion-chip';
-        chip.textContent = text;
-        
-        chip.addEventListener('click', () => {
-            elements.chatInput.value = text;
-            resizeInput();
-            sendMessage();
+        // Build prompt for generating suggestions
+        const recentMessages = chatHistory.slice(-4); // Get last 4 messages
+        let context = "";
+
+        recentMessages.forEach(msg => {
+            context += `${msg.role}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}\n`;
         });
-        
-        suggestionsContainer.appendChild(chip);
-    });
-}
+
+        const prompt = `Based on this conversation:\n${context}\n\nGenerate 4 short follow-up questions or topics the user might be interested in asking next. Each should be under 40 characters. Return only the questions as a JSON array ["question1", "question2", "question3", "question4"] with no explanation.`;
+
+        // Use the existing API
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: state.settings.model,
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a helpful assistant that generates follow-up questions."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 150
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                try {
+                    let suggestions;
+
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        const content = data.choices[0].message.content;
+
+                        // Try to parse JSON from the response
+                        try {
+                            // Look for array in the response if it's not pure JSON
+                            const match = content.match(/\[.*\]/s);
+                            if (match) {
+                                suggestions = JSON.parse(match[0]);
+                            } else {
+                                suggestions = JSON.parse(content);
+                            }
+                        } catch (e) {
+                            // If parsing fails, extract lines that look like suggestions
+                            suggestions = content
+                                .split('\n')
+                                .filter(line => line.trim().length > 0 && line.trim().length < 50)
+                                .map(line => line.replace(/^[0-9-."]*\s*/, '').replace(/^["'](.*)["']$/, '$1'))
+                                .slice(0, 4);
+                        }
+                    }
+
+                    if (!Array.isArray(suggestions) || suggestions.length === 0) {
+                        throw new Error('Failed to parse suggestions');
+                    }
+
+                    // Update UI with new suggestions
+                    updateSuggestionChipsUI(suggestions);
+                } catch (error) {
+                    console.error('Error processing suggestions:', error);
+                    // Fall back to generic suggestions
+                    updateSuggestionChipsUI([
+                        "Tell me more about this",
+                        "How does this work?",
+                        "Can you give examples?",
+                        "What are alternatives?"
+                    ]);
+                }
+            })
+            .catch(error => {
+                console.error('Error getting suggestions:', error);
+                // Fall back to generic suggestions
+                updateSuggestionChipsUI([
+                    "Tell me more about this",
+                    "How does this work?",
+                    "Can you give examples?",
+                    "What are alternatives?"
+                ]);
+            });
+    }
+
+    /**
+     * Update the suggestion chips in the UI
+     * @param {string[]} suggestions - Array of suggestion texts
+     */
+    function updateSuggestionChipsUI(suggestions) {
+        const suggestionsContainer = document.querySelector('.input-suggestions');
+        suggestionsContainer.innerHTML = '';
+
+        suggestions.forEach(text => {
+            const chip = document.createElement('div');
+            chip.className = 'suggestion-chip';
+            chip.textContent = text;
+
+            chip.addEventListener('click', () => {
+                elements.chatInput.value = text;
+                resizeInput();
+                sendMessage();
+            });
+
+            suggestionsContainer.appendChild(chip);
+        });
+    }
 
     /**
      * Set up all event listeners
