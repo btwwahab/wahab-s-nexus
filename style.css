@@ -2440,3 +2440,14 @@ body.light-theme .markdown-content th {
     font-family: monospace;
     white-space: pre-wrap;
 }
+.suggestion-chip.loading {
+    background: linear-gradient(90deg, #6a11cb 0%, #8e62d1 50%, #6a11cb 100%);
+    background-size: 200% 100%;
+    animation: loading-gradient 2s infinite linear;
+    color: white;
+}
+
+@keyframes loading-gradient {
+    0% { background-position: 0% 0; }
+    100% { background-position: 200% 0; }
+}

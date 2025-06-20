@@ -383,68 +383,68 @@ document.addEventListener('DOMContentLoaded', function () {
      * @param {string} role - Role of message sender ('user' or 'assistant')
      * @param {string} content - Message content
      */
-function addMessageToUI(role, content) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${role}`;
+    function addMessageToUI(role, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
 
-    // Set up marked.js options
-marked.setOptions({
-    renderer: new marked.Renderer(),
-    highlight: function(code, lang) {
-        // Simple syntax formatting without highlight.js
-        return code;
-    },
-    langPrefix: 'language-',
-    pedantic: false,
-    gfm: true,
-    breaks: true,
-    sanitize: false,
-    smartypants: true,
-    xhtml: false
-});
+        // Set up marked.js options
+        marked.setOptions({
+            renderer: new marked.Renderer(),
+            highlight: function (code, lang) {
+                // Simple syntax formatting without highlight.js
+                return code;
+            },
+            langPrefix: 'language-',
+            pedantic: false,
+            gfm: true,
+            breaks: true,
+            sanitize: false,
+            smartypants: true,
+            xhtml: false
+        });
 
-    // Process content based on role
-    let processedContent;
-    if (role === 'assistant') {
-        // Process markdown for AI responses
-        processedContent = marked.parse(content);
-        
-        // Add code block headers with language name and copy button
-        processedContent = processedContent.replace(
-            /<pre><code class="language-([a-zA-Z0-9]+)">/g, 
-            (match, language) => {
-                const displayLang = language === 'javascript' ? 'JavaScript' : 
-                                   language === 'typescript' ? 'TypeScript' :
-                                   language === 'python' ? 'Python' :
-                                   language === 'html' ? 'HTML' :
-                                   language === 'css' ? 'CSS' :
-                                   language === 'sql' ? 'SQL' :
-                                   language === 'json' ? 'JSON' :
-                                   language === 'java' ? 'Java' :
-                                   language === 'csharp' ? 'C#' :
-                                   language === 'cpp' ? 'C++' :
-                                   language === 'php' ? 'PHP' :
-                                   language === 'go' ? 'Go' :
-                                   language === 'ruby' ? 'Ruby' :
-                                   language === 'bash' ? 'Bash' :
-                                   language.charAt(0).toUpperCase() + language.slice(1);
-                
-                return `<div class="code-header">
+        // Process content based on role
+        let processedContent;
+        if (role === 'assistant') {
+            // Process markdown for AI responses
+            processedContent = marked.parse(content);
+
+            // Add code block headers with language name and copy button
+            processedContent = processedContent.replace(
+                /<pre><code class="language-([a-zA-Z0-9]+)">/g,
+                (match, language) => {
+                    const displayLang = language === 'javascript' ? 'JavaScript' :
+                        language === 'typescript' ? 'TypeScript' :
+                            language === 'python' ? 'Python' :
+                                language === 'html' ? 'HTML' :
+                                    language === 'css' ? 'CSS' :
+                                        language === 'sql' ? 'SQL' :
+                                            language === 'json' ? 'JSON' :
+                                                language === 'java' ? 'Java' :
+                                                    language === 'csharp' ? 'C#' :
+                                                        language === 'cpp' ? 'C++' :
+                                                            language === 'php' ? 'PHP' :
+                                                                language === 'go' ? 'Go' :
+                                                                    language === 'ruby' ? 'Ruby' :
+                                                                        language === 'bash' ? 'Bash' :
+                                                                            language.charAt(0).toUpperCase() + language.slice(1);
+
+                    return `<div class="code-header">
                     <span class="language-name">${displayLang}</span>
                     <button class="copy-button" data-clipboard-action="copy">
                         <i class="fas fa-copy"></i> Copy
                     </button>
                 </div>
                 <pre><code class="language-${language}">`;
-            }
-        );
-    } else {
-        // User messages - just replace newlines with <br>
-        processedContent = content.replace(/\n/g, '<br>');
-    }
+                }
+            );
+        } else {
+            // User messages - just replace newlines with <br>
+            processedContent = content.replace(/\n/g, '<br>');
+        }
 
-    // Create message content
-    messageDiv.innerHTML = `
+        // Create message content
+        messageDiv.innerHTML = `
         <div class="message-content">
             <div class="message-bubble ${role === 'assistant' ? 'markdown-content' : ''}">
                 ${processedContent}
@@ -467,46 +467,46 @@ marked.setOptions({
         </div>
     `;
 
-    // Add event listeners for message actions
-    setupMessageActions(messageDiv, content, role);
+        // Add event listeners for message actions
+        setupMessageActions(messageDiv, content, role);
 
-    // Add event listeners for code copy buttons
-    if (role === 'assistant') {
-        const copyButtons = messageDiv.querySelectorAll('.copy-button');
-        copyButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const codeBlock = button.parentElement.nextElementSibling.querySelector('code');
-                if (codeBlock) {
-                    const textToCopy = codeBlock.textContent;
-                    navigator.clipboard.writeText(textToCopy)
-                        .then(() => {
-                            // Change button text temporarily
-                            const originalHTML = button.innerHTML;
-                            button.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                            setTimeout(() => {
-                                button.innerHTML = originalHTML;
-                            }, 2000);
-                            showNotification('Code copied to clipboard', 'success');
-                        })
-                        .catch(err => {
-                            console.error('Copy failed:', err);
-                            showNotification('Failed to copy code', 'error');
-                        });
-                }
+        // Add event listeners for code copy buttons
+        if (role === 'assistant') {
+            const copyButtons = messageDiv.querySelectorAll('.copy-button');
+            copyButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const codeBlock = button.parentElement.nextElementSibling.querySelector('code');
+                    if (codeBlock) {
+                        const textToCopy = codeBlock.textContent;
+                        navigator.clipboard.writeText(textToCopy)
+                            .then(() => {
+                                // Change button text temporarily
+                                const originalHTML = button.innerHTML;
+                                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                                setTimeout(() => {
+                                    button.innerHTML = originalHTML;
+                                }, 2000);
+                                showNotification('Code copied to clipboard', 'success');
+                            })
+                            .catch(err => {
+                                console.error('Copy failed:', err);
+                                showNotification('Failed to copy code', 'error');
+                            });
+                    }
+                });
             });
-        });
-    }
+        }
 
-    elements.chatMessages.appendChild(messageDiv);
-    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-    
-    // Apply syntax highlighting to code blocks
-if (role === 'assistant') {
-    messageDiv.querySelectorAll('pre code').forEach((block) => {
-        block.classList.add('code-no-highlight');
-    });
-}
-}
+        elements.chatMessages.appendChild(messageDiv);
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+
+        // Apply syntax highlighting to code blocks
+        if (role === 'assistant') {
+            messageDiv.querySelectorAll('pre code').forEach((block) => {
+                block.classList.add('code-no-highlight');
+            });
+        }
+    }
 
     /**
      * Set up message action buttons
@@ -546,245 +546,245 @@ if (role === 'assistant') {
  * @param {HTMLElement} speakerBtn - The speaker button element
  * @param {string} text - Text to speak
  */
-async function handleTextToSpeech(speakerBtn, text) {
-    // Check if speech is currently active for this specific button
-    if (speakerBtn.classList.contains('speaking')) {
-        // Stop current speech
+    async function handleTextToSpeech(speakerBtn, text) {
+        // Check if speech is currently active for this specific button
+        if (speakerBtn.classList.contains('speaking')) {
+            // Stop current speech
+            window.speechSynthesis.cancel();
+            speakerBtn.classList.remove('speaking');
+            speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            showNotification('Speech stopped by user', 'info');
+            return;
+        }
+
+        // Check if text is valid
+        if (!text || text.trim().length === 0) {
+            showNotification('No text to read', 'warning');
+            return;
+        }
+
+        // Check if speech synthesis is supported
+        if (!window.speechSynthesis) {
+            showNotification('Text-to-speech not supported in your browser', 'error');
+            return;
+        }
+
+        // Additional check for production environments
+        if (window.location.protocol === 'https:' && !document.hasFocus()) {
+            showNotification('Please click in the browser window first, then try again', 'warning');
+            return;
+        }
+
+        // Stop any other active speech first
         window.speechSynthesis.cancel();
-        speakerBtn.classList.remove('speaking');
-        speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-        showNotification('Speech stopped by user', 'info');
-        return;
-    }
 
-    // Check if text is valid
-    if (!text || text.trim().length === 0) {
-        showNotification('No text to read', 'warning');
-        return;
-    }
+        // Reset all other speaker buttons
+        document.querySelectorAll('.message-action-btn .fa-pause').forEach(btn => {
+            const speakerButton = btn.parentElement;
+            speakerButton.classList.remove('speaking');
+            speakerButton.innerHTML = '<i class="fas fa-volume-up"></i>';
+        });
 
-    // Check if speech synthesis is supported
-    if (!window.speechSynthesis) {
-        showNotification('Text-to-speech not supported in your browser', 'error');
-        return;
-    }
+        showNotification('Preparing to read message aloud...', 'info');
 
-    // Additional check for production environments
-    if (window.location.protocol === 'https:' && !document.hasFocus()) {
-        showNotification('Please click in the browser window first, then try again', 'warning');
-        return;
-    }
-
-    // Stop any other active speech first
-    window.speechSynthesis.cancel();
-    
-    // Reset all other speaker buttons
-    document.querySelectorAll('.message-action-btn .fa-pause').forEach(btn => {
-        const speakerButton = btn.parentElement;
-        speakerButton.classList.remove('speaking');
-        speakerButton.innerHTML = '<i class="fas fa-volume-up"></i>';
-    });
-
-    showNotification('Preparing to read message aloud...', 'info');
-
-    try {
-        // Wait longer for cancellation to complete on production
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Clean the text - remove HTML tags and fix common issues
-        const cleanText = text
-            .replace(/<[^>]*>/g, '') // Remove HTML tags
-            .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
-            .replace(/&amp;/g, '&') // Replace HTML entities
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&quot;/g, '"')
-            .replace(/&#39;/g, "'")
-            .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-            .trim();
-
-        if (!cleanText) {
-            showNotification('No readable text found', 'warning');
-            return;
-        }
-
-        // Limit text length more aggressively for production
-        const maxLength = 500; // Reduced from 1000
-        const textToSpeak = cleanText.length > maxLength ? 
-            cleanText.substring(0, maxLength) + '...' : cleanText;
-
-        // Wait for voices to be loaded (important for production)
-        const voices = await getBestVoice('male');
-        if (!voices && window.speechSynthesis.getVoices().length === 0) {
-            showNotification('Speech voices not yet loaded. Please try again in a moment.', 'warning');
-            return;
-        }
-
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-
-        // Set basic properties with more conservative settings
-        utterance.lang = 'en-US';
-        utterance.rate = 0.8; // Slower rate for better compatibility
-        utterance.pitch = 1.0;
-        utterance.volume = 0.8; // Slightly lower volume
-
-        // Try to get a voice with better error handling
         try {
-            const voice = await getBestVoice('male');
-            if (voice) {
-                utterance.voice = voice;
-                console.log('Using voice:', voice.name);
-            } else {
-                console.log('Using default voice');
+            // Wait longer for cancellation to complete on production
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Clean the text - remove HTML tags and fix common issues
+            const cleanText = text
+                .replace(/<[^>]*>/g, '') // Remove HTML tags
+                .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+                .replace(/&amp;/g, '&') // Replace HTML entities
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                .trim();
+
+            if (!cleanText) {
+                showNotification('No readable text found', 'warning');
+                return;
             }
-        } catch (voiceError) {
-            console.warn('Could not set voice:', voiceError);
-            // Continue with default voice
-        }
 
-        // Track this specific utterance
-        let isThisUtteranceActive = true;
-        let wasStoppedByUser = false;
-        let hasStarted = false;
+            // Limit text length more aggressively for production
+            const maxLength = 500; // Reduced from 1000
+            const textToSpeak = cleanText.length > maxLength ?
+                cleanText.substring(0, maxLength) + '...' : cleanText;
 
-        // Set up event handlers with better error handling
-        utterance.onstart = () => {
-            if (isThisUtteranceActive) {
-                hasStarted = true;
-                speakerBtn.classList.add('speaking');
-                speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                showNotification('Reading message aloud', 'info');
+            // Wait for voices to be loaded (important for production)
+            const voices = await getBestVoice('male');
+            if (!voices && window.speechSynthesis.getVoices().length === 0) {
+                showNotification('Speech voices not yet loaded. Please try again in a moment.', 'warning');
+                return;
             }
-        };
 
-        utterance.onerror = (event) => {
-            console.error('Speech synthesis error:', event);
-            
-            // Only handle if this is still the active utterance
-            if (isThisUtteranceActive) {
-                speakerBtn.classList.remove('speaking');
-                speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                
-                // Don't show error for "interrupted" or if speech never started
-                if (event.error === 'interrupted' || !hasStarted) {
-                    if (hasStarted) {
-                        wasStoppedByUser = true;
-                        showNotification('Speech stopped by user', 'info');
-                    }
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+
+            // Set basic properties with more conservative settings
+            utterance.lang = 'en-US';
+            utterance.rate = 0.8; // Slower rate for better compatibility
+            utterance.pitch = 1.0;
+            utterance.volume = 0.8; // Slightly lower volume
+
+            // Try to get a voice with better error handling
+            try {
+                const voice = await getBestVoice('male');
+                if (voice) {
+                    utterance.voice = voice;
+                    console.log('Using voice:', voice.name);
                 } else {
-                    // Handle other errors with more specific messages
-                    let errorMessage = 'Speech synthesis failed';
-                    switch (event.error) {
-                        case 'network':
-                            errorMessage = 'Network error during speech';
-                            break;
-                        case 'synthesis-unavailable':
-                            errorMessage = 'Speech synthesis unavailable. Try refreshing the page.';
-                            break;
-                        case 'synthesis-failed':
-                            errorMessage = 'Speech synthesis failed. Try a shorter message.';
-                            break;
-                        case 'audio-busy':
-                            errorMessage = 'Audio system is busy. Please try again.';
-                            break;
-                        case 'audio-hardware':
-                            errorMessage = 'Audio hardware error';
-                            break;
-                        case 'language-unavailable':
-                            errorMessage = 'Language not available for speech';
-                            break;
-                        case 'voice-unavailable':
-                            errorMessage = 'Selected voice unavailable';
-                            break;
-                        case 'text-too-long':
-                            errorMessage = 'Text too long for speech synthesis';
-                            break;
-                        case 'invalid-argument':
-                            errorMessage = 'Invalid text for speech synthesis';
-                            break;
-                        case 'not-allowed':
-                            errorMessage = 'Speech synthesis not allowed. Please interact with the page first.';
-                            break;
-                        default:
-                            errorMessage = `Speech error: ${event.error}`;
+                    console.log('Using default voice');
+                }
+            } catch (voiceError) {
+                console.warn('Could not set voice:', voiceError);
+                // Continue with default voice
+            }
+
+            // Track this specific utterance
+            let isThisUtteranceActive = true;
+            let wasStoppedByUser = false;
+            let hasStarted = false;
+
+            // Set up event handlers with better error handling
+            utterance.onstart = () => {
+                if (isThisUtteranceActive) {
+                    hasStarted = true;
+                    speakerBtn.classList.add('speaking');
+                    speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                    showNotification('Reading message aloud', 'info');
+                }
+            };
+
+            utterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+
+                // Only handle if this is still the active utterance
+                if (isThisUtteranceActive) {
+                    speakerBtn.classList.remove('speaking');
+                    speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+
+                    // Don't show error for "interrupted" or if speech never started
+                    if (event.error === 'interrupted' || !hasStarted) {
+                        if (hasStarted) {
+                            wasStoppedByUser = true;
+                            showNotification('Speech stopped by user', 'info');
+                        }
+                    } else {
+                        // Handle other errors with more specific messages
+                        let errorMessage = 'Speech synthesis failed';
+                        switch (event.error) {
+                            case 'network':
+                                errorMessage = 'Network error during speech';
+                                break;
+                            case 'synthesis-unavailable':
+                                errorMessage = 'Speech synthesis unavailable. Try refreshing the page.';
+                                break;
+                            case 'synthesis-failed':
+                                errorMessage = 'Speech synthesis failed. Try a shorter message.';
+                                break;
+                            case 'audio-busy':
+                                errorMessage = 'Audio system is busy. Please try again.';
+                                break;
+                            case 'audio-hardware':
+                                errorMessage = 'Audio hardware error';
+                                break;
+                            case 'language-unavailable':
+                                errorMessage = 'Language not available for speech';
+                                break;
+                            case 'voice-unavailable':
+                                errorMessage = 'Selected voice unavailable';
+                                break;
+                            case 'text-too-long':
+                                errorMessage = 'Text too long for speech synthesis';
+                                break;
+                            case 'invalid-argument':
+                                errorMessage = 'Invalid text for speech synthesis';
+                                break;
+                            case 'not-allowed':
+                                errorMessage = 'Speech synthesis not allowed. Please interact with the page first.';
+                                break;
+                            default:
+                                errorMessage = `Speech error: ${event.error}`;
+                        }
+
+                        showNotification(errorMessage, 'error');
                     }
-                    
-                    showNotification(errorMessage, 'error');
                 }
-            }
-            isThisUtteranceActive = false;
-        };
-
-        utterance.onend = () => {
-            if (isThisUtteranceActive) {
-                speakerBtn.classList.remove('speaking');
-                speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                
-                // Only show completion message if it wasn't stopped by user and actually started
-                if (!wasStoppedByUser && hasStarted) {
-                    showNotification('Finished reading message', 'success');
-                }
-            }
-            isThisUtteranceActive = false;
-        };
-
-        utterance.onpause = () => {
-            if (isThisUtteranceActive) {
-                speakerBtn.classList.remove('speaking');
-                speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                showNotification('Speech paused', 'info');
-            }
-        };
-
-        utterance.onresume = () => {
-            if (isThisUtteranceActive) {
-                speakerBtn.classList.add('speaking');
-                speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
-                showNotification('Speech resumed', 'info');
-            }
-        };
-
-        // Store reference to this utterance on the button for cancellation
-        speakerBtn.currentUtterance = utterance;
-        speakerBtn.isUtteranceActive = () => isThisUtteranceActive;
-
-        // Add timeout as fallback
-        const timeoutId = setTimeout(() => {
-            if (isThisUtteranceActive && !hasStarted) {
-                console.warn('Speech did not start within timeout');
-                window.speechSynthesis.cancel();
-                speakerBtn.classList.remove('speaking');
-                speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-                showNotification('Speech synthesis timed out. Please try again.', 'warning');
                 isThisUtteranceActive = false;
-            }
-        }, 5000); // 5 second timeout
+            };
 
-        // Clear timeout when speech starts
-        const originalOnStart = utterance.onstart;
-        utterance.onstart = () => {
-            clearTimeout(timeoutId);
-            if (originalOnStart) originalOnStart();
-        };
+            utterance.onend = () => {
+                if (isThisUtteranceActive) {
+                    speakerBtn.classList.remove('speaking');
+                    speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
 
-        // Speak the text
-        console.log('Starting speech synthesis...');
-        window.speechSynthesis.speak(utterance);
+                    // Only show completion message if it wasn't stopped by user and actually started
+                    if (!wasStoppedByUser && hasStarted) {
+                        showNotification('Finished reading message', 'success');
+                    }
+                }
+                isThisUtteranceActive = false;
+            };
 
-        // Additional check for browsers that need a kickstart
-        setTimeout(() => {
-            if (window.speechSynthesis.paused) {
-                window.speechSynthesis.resume();
-            }
-        }, 100);
+            utterance.onpause = () => {
+                if (isThisUtteranceActive) {
+                    speakerBtn.classList.remove('speaking');
+                    speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    showNotification('Speech paused', 'info');
+                }
+            };
 
-    } catch (error) {
-        console.error('Text-to-speech error:', error);
-        speakerBtn.classList.remove('speaking');
-        speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
-        showNotification('Could not initialize text-to-speech', 'error');
+            utterance.onresume = () => {
+                if (isThisUtteranceActive) {
+                    speakerBtn.classList.add('speaking');
+                    speakerBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                    showNotification('Speech resumed', 'info');
+                }
+            };
+
+            // Store reference to this utterance on the button for cancellation
+            speakerBtn.currentUtterance = utterance;
+            speakerBtn.isUtteranceActive = () => isThisUtteranceActive;
+
+            // Add timeout as fallback
+            const timeoutId = setTimeout(() => {
+                if (isThisUtteranceActive && !hasStarted) {
+                    console.warn('Speech did not start within timeout');
+                    window.speechSynthesis.cancel();
+                    speakerBtn.classList.remove('speaking');
+                    speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                    showNotification('Speech synthesis timed out. Please try again.', 'warning');
+                    isThisUtteranceActive = false;
+                }
+            }, 5000); // 5 second timeout
+
+            // Clear timeout when speech starts
+            const originalOnStart = utterance.onstart;
+            utterance.onstart = () => {
+                clearTimeout(timeoutId);
+                if (originalOnStart) originalOnStart();
+            };
+
+            // Speak the text
+            console.log('Starting speech synthesis...');
+            window.speechSynthesis.speak(utterance);
+
+            // Additional check for browsers that need a kickstart
+            setTimeout(() => {
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                }
+            }, 100);
+
+        } catch (error) {
+            console.error('Text-to-speech error:', error);
+            speakerBtn.classList.remove('speaking');
+            speakerBtn.innerHTML = '<i class="fas fa-volume-up"></i>';
+            showNotification('Could not initialize text-to-speech', 'error');
+        }
     }
-}
 
     /**
      * Handle message editing
@@ -1043,12 +1043,12 @@ async function handleTextToSpeech(speakerBtn, text) {
             "I've analyzed your question and here's what I can tell you."
         ];
 
-        const personalityResponses = {
-            'assistant': "As your professional assistant, I can provide a clear and concise answer to your inquiry.",
-            'fetchBotResponsedeveloper': "Looking at this from a technical perspective, let me explain with some code examples.",
-            'teacher': "Let me explain this concept in a way that's easy to understand with some helpful examples.",
-            'creative': "That sparks some interesting ideas! Here's a creative approach to what you're asking about."
-        };
+const personalityResponses = {
+    'assistant': "As your professional assistant, I can provide a clear and concise answer to your inquiry.",
+    'developer': "Looking at this from a technical perspective, let me explain with some code examples.",
+    'teacher': "Let me explain this concept in a way that's easy to understand with some helpful examples.",
+    'creative': "That sparks some interesting ideas! Here's a creative approach to what you're asking about."
+};
 
         const randomResponse = responses[Math.floor(Math.random() * responses.length)];
         const personalityIntro = personalityResponses[state.personality.type] || '';
@@ -1062,117 +1062,118 @@ async function handleTextToSpeech(speakerBtn, text) {
      */
 
 
-function fetchBotResponse(userMessage) {
-    const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
+    function fetchBotResponse(userMessage) {
+        const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
-    // Prepare system message based on personality with additional formatting instructions
-    let systemContent = PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant'];
-    
-    // Add formatting instructions
-    systemContent += "\n\n" + 
-        "Please format your responses using Markdown for better readability:" +
-        "\n- Use **bold** and *italic* for emphasis" +
-        "\n- Use `code` for inline code and ```language\ncode\n``` for code blocks" +
-        "\n- Use proper headings with # and ## for sections" +
-        "\n- Use bullet points and numbered lists where appropriate" +
-        "\n- Create tables using Markdown table syntax when displaying tabular data" +
-        "\n- Use > for blockquotes" +
-        "\n- Include language name in code blocks for proper syntax highlighting";
+        // Prepare system message based on personality with additional formatting instructions
+        let systemContent = PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant'];
 
-    // Add custom instructions if available
-    if (state.personality.customInstructions) {
-        systemContent += "\n\n" + state.personality.customInstructions;
-    }
+        // Add formatting instructions
+        systemContent += "\n\n" +
+            "Please format your responses using Markdown for better readability:" +
+            "\n- Use **bold** and *italic* for emphasis" +
+            "\n- Use `code` for inline code and ```language\ncode\n``` for code blocks" +
+            "\n- Use proper headings with # and ## for sections" +
+            "\n- Use bullet points and numbered lists where appropriate" +
+            "\n- Create tables using Markdown table syntax when displaying tabular data" +
+            "\n- Use > for blockquotes" +
+            "\n- Include language name in code blocks for proper syntax highlighting";
 
-    const systemMessage = {
-        role: "system",
-        content: systemContent
-    };
+        // Add custom instructions if available
+        if (state.personality.customInstructions) {
+            systemContent += "\n\n" + state.personality.customInstructions;
+        }
 
-    // Add custom instructions if available
-    if (state.personality.customInstructions) {
-        systemMessage.content += "\n\n" + state.personality.customInstructions;
-    }
+        const systemMessage = {
+            role: "system",
+            content: systemContent
+        };
 
-    // Prepare messages array
-    const messages = [systemMessage, ...chatHistory];
+        // Add custom instructions if available
+        if (state.personality.customInstructions) {
+            systemMessage.content += "\n\n" + state.personality.customInstructions;
+        }
 
-    // Configuration for the request
-    const requestData = {
-        model: MODEL,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 800,
-        top_p: 1
-    };
+        // Prepare messages array
+        const messages = [systemMessage, ...chatHistory];
 
-    console.log('Sending request to /api/chat...');
+        // Configuration for the request
+        const requestData = {
+            model: MODEL,
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 800,
+            top_p: 1
+        };
 
-    // Call your serverless function (NOT Groq directly)
-    fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestData)
-    })
-    .then(response => {
-        console.log('Response status:', response.status);
-        if (!response.ok) {
-            return response.text().then(text => {
-                console.error('API Error Response:', text);
-                throw new Error(`HTTP ${response.status}: ${text}`);
+        console.log('Sending request to /api/chat...');
+
+        // Call your serverless function (NOT Groq directly)
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('API Error Response:', text);
+                        throw new Error(`HTTP ${response.status}: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('API response:', data);
+
+                if (data.error) {
+                    throw new Error(data.error.message || data.error);
+                }
+
+                if (data.choices && data.choices[0] && data.choices[0].message) {
+                    // Remove typing indicator
+                    removeTypingIndicator();
+
+                    const responseContent = data.choices[0].message.content;
+
+                    // Add response to UI
+                    addMessageToUI('assistant', responseContent);
+
+                    // Add to chat history for API context
+                    chatHistory.push({
+                        role: 'assistant',
+                        content: responseContent
+                    });
+
+                    // Save to conversation
+                    saveMessageToConversation('assistant', responseContent);
+                    updateSuggestionChips();
+                } else {
+                    throw new Error('Invalid response format from API');
+                }
+            })
+            .catch(error => {
+                console.error('API Error:', error);
+                removeTypingIndicator();
+
+                let errorMessage = error.message || 'Unknown error occurred';
+                showNotification(`API Error: ${errorMessage}`, 'error');
+
+                // Use fallback response
+                const fallbackResponse = getGeneralResponse(userMessage);
+                addMessageToUI('assistant', fallbackResponse);
+
+                chatHistory.push({
+                    role: 'assistant',
+                    content: fallbackResponse
+                });
+
+                saveMessageToConversation('assistant', fallbackResponse);
             });
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('API response:', data);
-        
-        if (data.error) {
-            throw new Error(data.error.message || data.error);
-        }
-        
-        if (data.choices && data.choices[0] && data.choices[0].message) {
-            // Remove typing indicator
-            removeTypingIndicator();
-            
-            const responseContent = data.choices[0].message.content;
-            
-            // Add response to UI
-            addMessageToUI('assistant', responseContent);
-            
-            // Add to chat history for API context
-            chatHistory.push({
-                role: 'assistant',
-                content: responseContent
-            });
-            
-            // Save to conversation
-            saveMessageToConversation('assistant', responseContent);
-        } else {
-            throw new Error('Invalid response format from API');
-        }
-    })
-    .catch(error => {
-        console.error('API Error:', error);
-        removeTypingIndicator();
-        
-        let errorMessage = error.message || 'Unknown error occurred';
-        showNotification(`API Error: ${errorMessage}`, 'error');
-        
-        // Use fallback response
-        const fallbackResponse = getGeneralResponse(userMessage);
-        addMessageToUI('assistant', fallbackResponse);
-        
-        chatHistory.push({
-            role: 'assistant',
-            content: fallbackResponse
-        });
-        
-        saveMessageToConversation('assistant', fallbackResponse);
-    });
-}
+    }
 
 
 
@@ -1221,6 +1222,7 @@ function fetchBotResponse(userMessage) {
             role: 'assistant',
             content: welcomeMessage
         });
+        updateSuggestionChips(true);
     }
 
     /**
@@ -1464,87 +1466,87 @@ function fetchBotResponse(userMessage) {
         });
     }
 
-/**
- * Find the best voice based on gender
- * @param {string} gender - Preferred gender ('male' or 'female')
- * @returns {Promise<SpeechSynthesisVoice>} Best matching voice
- */
-async function getBestVoice(gender = null) {
-    return new Promise((resolve) => {
-        let voices = window.speechSynthesis.getVoices();
+    /**
+     * Find the best voice based on gender
+     * @param {string} gender - Preferred gender ('male' or 'female')
+     * @returns {Promise<SpeechSynthesisVoice>} Best matching voice
+     */
+    async function getBestVoice(gender = null) {
+        return new Promise((resolve) => {
+            let voices = window.speechSynthesis.getVoices();
 
-        const processVoices = () => {
-            console.log("Available voices:", voices.map(v => `${v.name} (${v.lang})`));
+            const processVoices = () => {
+                console.log("Available voices:", voices.map(v => `${v.name} (${v.lang})`));
 
-            if (!voices.length) {
-                console.warn('No voices available');
-                resolve(null);
-                return;
-            }
-
-            // Try to find voice based on gender
-            if (gender) {
-                const femalePatterns = ['female', 'woman', 'girl', 'fiona', 'samantha', 'karen', 'moira', 'tessa', 'zira', 'susan', 'allison'];
-                const malePatterns = ['male', 'man', 'boy', 'guy', 'david', 'mark', 'daniel', 'alex', 'tom', 'fred', 'jorge'];
-                const patterns = gender === 'female' ? femalePatterns : malePatterns;
-
-                // First try to find English voices with the gender
-                const englishVoiceWithGender = voices.find(voice =>
-                    voice.lang.startsWith('en') &&
-                    patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
-                );
-
-                if (englishVoiceWithGender) {
-                    console.log(`Selected ${gender} voice: ${englishVoiceWithGender.name}`);
-                    resolve(englishVoiceWithGender);
-                    return;
-                }
-
-                // If no English voice with gender, try any voice with the gender
-                const anyVoiceWithGender = voices.find(voice =>
-                    patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
-                );
-
-                if (anyVoiceWithGender) {
-                    console.log(`Selected ${gender} voice: ${anyVoiceWithGender.name}`);
-                    resolve(anyVoiceWithGender);
-                    return;
-                }
-            }
-
-            // Default to first English voice or any voice
-            const defaultVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
-            console.log('Using default voice:', defaultVoice?.name);
-            resolve(defaultVoice);
-        };
-
-        if (voices.length) {
-            processVoices();
-        } else {
-            // Wait for voices to load (important for production)
-            let attempts = 0;
-            const maxAttempts = 10;
-            
-            const checkVoices = () => {
-                voices = window.speechSynthesis.getVoices();
-                attempts++;
-                
-                if (voices.length > 0) {
-                    processVoices();
-                } else if (attempts < maxAttempts) {
-                    setTimeout(checkVoices, 200);
-                } else {
-                    console.warn('Voices failed to load after maximum attempts');
+                if (!voices.length) {
+                    console.warn('No voices available');
                     resolve(null);
+                    return;
                 }
+
+                // Try to find voice based on gender
+                if (gender) {
+                    const femalePatterns = ['female', 'woman', 'girl', 'fiona', 'samantha', 'karen', 'moira', 'tessa', 'zira', 'susan', 'allison'];
+                    const malePatterns = ['male', 'man', 'boy', 'guy', 'david', 'mark', 'daniel', 'alex', 'tom', 'fred', 'jorge'];
+                    const patterns = gender === 'female' ? femalePatterns : malePatterns;
+
+                    // First try to find English voices with the gender
+                    const englishVoiceWithGender = voices.find(voice =>
+                        voice.lang.startsWith('en') &&
+                        patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
+                    );
+
+                    if (englishVoiceWithGender) {
+                        console.log(`Selected ${gender} voice: ${englishVoiceWithGender.name}`);
+                        resolve(englishVoiceWithGender);
+                        return;
+                    }
+
+                    // If no English voice with gender, try any voice with the gender
+                    const anyVoiceWithGender = voices.find(voice =>
+                        patterns.some(pattern => voice.name.toLowerCase().includes(pattern))
+                    );
+
+                    if (anyVoiceWithGender) {
+                        console.log(`Selected ${gender} voice: ${anyVoiceWithGender.name}`);
+                        resolve(anyVoiceWithGender);
+                        return;
+                    }
+                }
+
+                // Default to first English voice or any voice
+                const defaultVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+                console.log('Using default voice:', defaultVoice?.name);
+                resolve(defaultVoice);
             };
 
-            // Try multiple approaches to load voices
-            window.speechSynthesis.addEventListener('voiceschanged', processVoices, { once: true });
-            setTimeout(checkVoices, 100);
-        }
-    });
-}
+            if (voices.length) {
+                processVoices();
+            } else {
+                // Wait for voices to load (important for production)
+                let attempts = 0;
+                const maxAttempts = 10;
+
+                const checkVoices = () => {
+                    voices = window.speechSynthesis.getVoices();
+                    attempts++;
+
+                    if (voices.length > 0) {
+                        processVoices();
+                    } else if (attempts < maxAttempts) {
+                        setTimeout(checkVoices, 200);
+                    } else {
+                        console.warn('Voices failed to load after maximum attempts');
+                        resolve(null);
+                    }
+                };
+
+                // Try multiple approaches to load voices
+                window.speechSynthesis.addEventListener('voiceschanged', processVoices, { once: true });
+                setTimeout(checkVoices, 100);
+            }
+        });
+    }
 
     /**
      * Search conversation history
@@ -1648,6 +1650,142 @@ async function getBestVoice(gender = null) {
             createNewConversation();
         }
     }
+
+    /**
+ * Update suggestion chips with AI-generated suggestions
+ * @param {boolean} isInitial - Whether this is the initial loading
+ */
+function updateSuggestionChips(isInitial = false) {
+    const suggestionsContainer = document.querySelector('.input-suggestions');
+    
+    // Initial/default suggestions
+    if (isInitial || !chatHistory.length) {
+        const defaultSuggestions = [
+            "Explain quantum computing",
+            "Summarize this article",
+            "Write a poem about nature",
+            "Help debug my code"
+        ];
+        
+        updateSuggestionChipsUI(defaultSuggestions);
+        return;
+    }
+    
+    // Show loading state
+    suggestionsContainer.innerHTML = `
+        <div class="suggestion-chip loading">Generating suggestions...</div>
+    `;
+    
+    // Build prompt for generating suggestions
+    const recentMessages = chatHistory.slice(-4); // Get last 4 messages
+    let context = "";
+    
+    recentMessages.forEach(msg => {
+        context += `${msg.role}: ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}\n`;
+    });
+    
+    const prompt = `Based on this conversation:\n${context}\n\nGenerate 4 short follow-up questions or topics the user might be interested in asking next. Each should be under 40 characters. Return only the questions as a JSON array ["question1", "question2", "question3", "question4"] with no explanation.`;
+    
+    // Use the existing API
+    fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: state.settings.model,
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a helpful assistant that generates follow-up questions."
+                },
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 150
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        try {
+            let suggestions;
+            
+            if (data.choices && data.choices[0] && data.choices[0].message) {
+                const content = data.choices[0].message.content;
+                
+                // Try to parse JSON from the response
+                try {
+                    // Look for array in the response if it's not pure JSON
+                    const match = content.match(/\[.*\]/s);
+                    if (match) {
+                        suggestions = JSON.parse(match[0]);
+                    } else {
+                        suggestions = JSON.parse(content);
+                    }
+                } catch (e) {
+                    // If parsing fails, extract lines that look like suggestions
+                    suggestions = content
+                        .split('\n')
+                        .filter(line => line.trim().length > 0 && line.trim().length < 50)
+                        .map(line => line.replace(/^[0-9-."]*\s*/, '').replace(/^["'](.*)["']$/, '$1'))
+                        .slice(0, 4);
+                }
+            }
+            
+            if (!Array.isArray(suggestions) || suggestions.length === 0) {
+                throw new Error('Failed to parse suggestions');
+            }
+            
+            // Update UI with new suggestions
+            updateSuggestionChipsUI(suggestions);
+        } catch (error) {
+            console.error('Error processing suggestions:', error);
+            // Fall back to generic suggestions
+            updateSuggestionChipsUI([
+                "Tell me more about this",
+                "How does this work?",
+                "Can you give examples?",
+                "What are alternatives?"
+            ]);
+        }
+    })
+    .catch(error => {
+        console.error('Error getting suggestions:', error);
+        // Fall back to generic suggestions
+        updateSuggestionChipsUI([
+            "Tell me more about this",
+            "How does this work?",
+            "Can you give examples?",
+            "What are alternatives?"
+        ]);
+    });
+}
+
+/**
+ * Update the suggestion chips in the UI
+ * @param {string[]} suggestions - Array of suggestion texts
+ */
+function updateSuggestionChipsUI(suggestions) {
+    const suggestionsContainer = document.querySelector('.input-suggestions');
+    suggestionsContainer.innerHTML = '';
+    
+    suggestions.forEach(text => {
+        const chip = document.createElement('div');
+        chip.className = 'suggestion-chip';
+        chip.textContent = text;
+        
+        chip.addEventListener('click', () => {
+            elements.chatInput.value = text;
+            resizeInput();
+            sendMessage();
+        });
+        
+        suggestionsContainer.appendChild(chip);
+    });
+}
 
     /**
      * Set up all event listeners
