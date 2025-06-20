@@ -1276,7 +1276,7 @@ body {
     transition: var(--transition);
     border: none;
     position: relative;
-    /* overflow: hidden; */
+    overflow: hidden;
 }
 
 .primary-btn {
