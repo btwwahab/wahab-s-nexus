@@ -383,38 +383,132 @@ document.addEventListener('DOMContentLoaded', function () {
      * @param {string} role - Role of message sender ('user' or 'assistant')
      * @param {string} content - Message content
      */
-    function addMessageToUI(role, content) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${role}`;
+function addMessageToUI(role, content) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
 
-        // Create message content
-        messageDiv.innerHTML = `
-            <div class="message-content">
-                <div class="message-bubble">${content.replace(/\n/g, '<br>')}</div>
-                <div class="message-time">${getCurrentTime()}</div>
-                <div class="message-actions">
-                    ${role === 'assistant' ? `
-                        <button class="message-action-btn" title="Copy to clipboard">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <button class="message-action-btn" title="Read aloud">
-                            <i class="fas fa-volume-up"></i>
-                        </button>
-                    ` : `
-                        <button class="message-action-btn" title="Edit">
-                            <i class="fas fa-pencil-alt"></i>
-                        </button>
-                    `}
+    // Set up marked.js options
+    marked.setOptions({
+        renderer: new marked.Renderer(),
+        highlight: function(code, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+                return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+            }
+            return hljs.highlightAuto(code).value;
+        },
+        langPrefix: 'language-',
+        pedantic: false,
+        gfm: true,
+        breaks: true,
+        sanitize: false,
+        smartypants: true,
+        xhtml: false
+    });
+
+    // Process content based on role
+    let processedContent;
+    if (role === 'assistant') {
+        // Process markdown for AI responses
+        processedContent = marked.parse(content);
+        
+        // Add code block headers with language name and copy button
+        processedContent = processedContent.replace(
+            /<pre><code class="language-([a-zA-Z0-9]+)">/g, 
+            (match, language) => {
+                const displayLang = language === 'javascript' ? 'JavaScript' : 
+                                   language === 'typescript' ? 'TypeScript' :
+                                   language === 'python' ? 'Python' :
+                                   language === 'html' ? 'HTML' :
+                                   language === 'css' ? 'CSS' :
+                                   language === 'sql' ? 'SQL' :
+                                   language === 'json' ? 'JSON' :
+                                   language === 'java' ? 'Java' :
+                                   language === 'csharp' ? 'C#' :
+                                   language === 'cpp' ? 'C++' :
+                                   language === 'php' ? 'PHP' :
+                                   language === 'go' ? 'Go' :
+                                   language === 'ruby' ? 'Ruby' :
+                                   language === 'bash' ? 'Bash' :
+                                   language.charAt(0).toUpperCase() + language.slice(1);
+                
+                return `<div class="code-header">
+                    <span class="language-name">${displayLang}</span>
+                    <button class="copy-button" data-clipboard-action="copy">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
                 </div>
-            </div>
-        `;
-
-        // Add event listeners for message actions
-        setupMessageActions(messageDiv, content, role);
-
-        elements.chatMessages.appendChild(messageDiv);
-        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+                <pre><code class="language-${language}">`;
+            }
+        );
+    } else {
+        // User messages - just replace newlines with <br>
+        processedContent = content.replace(/\n/g, '<br>');
     }
+
+    // Create message content
+    messageDiv.innerHTML = `
+        <div class="message-content">
+            <div class="message-bubble ${role === 'assistant' ? 'markdown-content' : ''}">
+                ${processedContent}
+            </div>
+            <div class="message-time">${getCurrentTime()}</div>
+            <div class="message-actions">
+                ${role === 'assistant' ? `
+                    <button class="message-action-btn" title="Copy to clipboard">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                    <button class="message-action-btn" title="Read aloud">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                ` : `
+                    <button class="message-action-btn" title="Edit">
+                        <i class="fas fa-pencil-alt"></i>
+                    </button>
+                `}
+            </div>
+        </div>
+    `;
+
+    // Add event listeners for message actions
+    setupMessageActions(messageDiv, content, role);
+
+    // Add event listeners for code copy buttons
+    if (role === 'assistant') {
+        const copyButtons = messageDiv.querySelectorAll('.copy-button');
+        copyButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const codeBlock = button.parentElement.nextElementSibling.querySelector('code');
+                if (codeBlock) {
+                    const textToCopy = codeBlock.textContent;
+                    navigator.clipboard.writeText(textToCopy)
+                        .then(() => {
+                            // Change button text temporarily
+                            const originalHTML = button.innerHTML;
+                            button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                            setTimeout(() => {
+                                button.innerHTML = originalHTML;
+                            }, 2000);
+                            showNotification('Code copied to clipboard', 'success');
+                        })
+                        .catch(err => {
+                            console.error('Copy failed:', err);
+                            showNotification('Failed to copy code', 'error');
+                        });
+                }
+            });
+        });
+    }
+
+    elements.chatMessages.appendChild(messageDiv);
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    
+    // Apply syntax highlighting to code blocks
+    if (role === 'assistant') {
+        messageDiv.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightElement(block);
+        });
+    }
+}
 
     /**
      * Set up message action buttons
@@ -734,85 +828,204 @@ async function handleTextToSpeech(speakerBtn, text) {
      * @param {HTMLElement} messageBubble - Message bubble element
      * @param {string} originalText - Original message content
      */
-    function saveMessageEdit(messageDiv, messageBubble, originalText) {
-        const newText = messageBubble.querySelector('.edit-message-area').value;
-        const isUserMessage = messageDiv.classList.contains('user');
+function saveMessageEdit(messageDiv, messageBubble, originalText) {
+    const newText = messageBubble.querySelector('.edit-message-area').value;
+    const isUserMessage = messageDiv.classList.contains('user');
 
-        // Update the UI
-        messageBubble.innerHTML = newText;
+    // Update the UI with properly formatted content
+    if (isUserMessage) {
+        // For user messages, just replace newlines with <br>
+        messageBubble.innerHTML = newText.replace(/\n/g, '<br>');
+    } else {
+        // For AI messages, parse markdown
+        messageBubble.className = 'message-bubble markdown-content';
+        
+        // Set up marked.js options
+        marked.setOptions({
+            renderer: new marked.Renderer(),
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            },
+            langPrefix: 'language-',
+            pedantic: false,
+            gfm: true,
+            breaks: true,
+            sanitize: false,
+            smartypants: true,
+            xhtml: false
+        });
+        
+        // Process markdown for AI responses
+        let processedContent = marked.parse(newText);
+        
+        // Add code block headers with language name and copy button
+        processedContent = processedContent.replace(
+            /<pre><code class="language-([a-zA-Z0-9]+)">/g, 
+            (match, language) => {
+                const displayLang = language === 'javascript' ? 'JavaScript' : 
+                                   language === 'typescript' ? 'TypeScript' :
+                                   language === 'python' ? 'Python' :
+                                   language === 'html' ? 'HTML' :
+                                   language === 'css' ? 'CSS' :
+                                   language === 'sql' ? 'SQL' :
+                                   language === 'json' ? 'JSON' :
+                                   language === 'java' ? 'Java' :
+                                   language === 'csharp' ? 'C#' :
+                                   language === 'cpp' ? 'C++' :
+                                   language === 'php' ? 'PHP' :
+                                   language === 'go' ? 'Go' :
+                                   language === 'ruby' ? 'Ruby' :
+                                   language === 'bash' ? 'Bash' :
+                                   language.charAt(0).toUpperCase() + language.slice(1);
+                
+                return `<div class="code-header">
+                    <span class="language-name">${displayLang}</span>
+                    <button class="copy-button" data-clipboard-action="copy">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <pre><code class="language-${language}">`;
+            }
+        );
+        
+        messageBubble.innerHTML = processedContent;
+        
+        // Add event listeners for code copy buttons
+        const copyButtons = messageBubble.querySelectorAll('.copy-button');
+        copyButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const codeBlock = button.parentElement.nextElementSibling.querySelector('code');
+                if (codeBlock) {
+                    const textToCopy = codeBlock.textContent;
+                    navigator.clipboard.writeText(textToCopy)
+                        .then(() => {
+                            // Change button text temporarily
+                            const originalHTML = button.innerHTML;
+                            button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                            setTimeout(() => {
+                                button.innerHTML = originalHTML;
+                            }, 2000);
+                            showNotification('Code copied to clipboard', 'success');
+                        })
+                        .catch(err => {
+                            console.error('Copy failed:', err);
+                            showNotification('Failed to copy code', 'error');
+                        });
+                }
+            });
+        });
+        
+        // Apply syntax highlighting to code blocks
+        messageBubble.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightElement(block);
+        });
+    }
 
-        // If it's a user message, update the chatHistory and get new response
-        if (isUserMessage) {
-            // Find the corresponding message in chatHistory
-            const messagePosition = parseInt(messageDiv.dataset.messageIndex);
+    // If it's a user message, update the chatHistory and get new response
+    if (isUserMessage) {
+        // Find the corresponding message in chatHistory
+        const messagePosition = parseInt(messageDiv.dataset.messageIndex);
 
-            // Create a mapping to the actual position in chatHistory
-            let userMsgCount = 0;
-            let chatHistoryIndex = -1;
+        // Create a mapping to the actual position in chatHistory
+        let userMsgCount = 0;
+        let chatHistoryIndex = -1;
 
-            for (let i = 0; i <= messagePosition; i++) {
-                if (elements.chatMessages.children[i].classList.contains('user')) {
-                    userMsgCount++;
+        for (let i = 0; i <= messagePosition; i++) {
+            if (elements.chatMessages.children[i].classList.contains('user')) {
+                userMsgCount++;
+            }
+        }
+
+        // Find the corresponding user message in chatHistory
+        for (let i = 0; i < chatHistory.length; i++) {
+            if (chatHistory[i].role === 'user') {
+                userMsgCount--;
+                if (userMsgCount === 0) {
+                    chatHistoryIndex = i;
+                    break;
                 }
             }
+        }
 
-            // Find the corresponding user message in chatHistory
-            for (let i = 0; i < chatHistory.length; i++) {
-                if (chatHistory[i].role === 'user') {
-                    userMsgCount--;
-                    if (userMsgCount === 0) {
-                        chatHistoryIndex = i;
+        if (chatHistoryIndex >= 0) {
+            // Update the content in chatHistory
+            chatHistory[chatHistoryIndex].content = newText;
+
+            // Remove all messages after this one in UI
+            let nextNode = messageDiv.nextSibling;
+            while (nextNode) {
+                const currentNode = nextNode;
+                nextNode = nextNode.nextSibling;
+                elements.chatMessages.removeChild(currentNode);
+            }
+
+            // Trim chatHistory to remove all messages after this one
+            chatHistory = chatHistory.slice(0, chatHistoryIndex + 1);
+
+            // Also update in state.chatHistory
+            const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
+            if (convo && convo.messages) {
+                // Find the corresponding message in conversation and update it
+                for (let i = 0; i < convo.messages.length; i++) {
+                    if (convo.messages[i].role === 'user' &&
+                        i === messagePosition) {
+                        convo.messages[i].content = newText;
+
+                        // Remove all messages after this one
+                        convo.messages = convo.messages.slice(0, i + 1);
                         break;
                     }
                 }
+
+                // Save updated conversation
+                if (state.settings.saveHistory) {
+                    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+                }
             }
 
-            if (chatHistoryIndex >= 0) {
-                // Update the content in chatHistory
-                chatHistory[chatHistoryIndex].content = newText;
-
-                // Remove all messages after this one in UI
-                let nextNode = messageDiv.nextSibling;
-                while (nextNode) {
-                    const currentNode = nextNode;
-                    nextNode = nextNode.nextSibling;
-                    elements.chatMessages.removeChild(currentNode);
+            // Show typing indicator and get new response
+            showTypingIndicator();
+            fetchBotResponse(newText);
+        }
+    } else {
+        // For assistant messages, update in chatHistory and state
+        const messagePosition = parseInt(messageDiv.dataset.messageIndex);
+        
+        // Find and update in chatHistory
+        let assistantMsgCount = 0;
+        for (let i = 0; i < chatHistory.length; i++) {
+            if (chatHistory[i].role === 'assistant') {
+                if (assistantMsgCount === messagePosition) {
+                    chatHistory[i].content = newText;
+                    break;
                 }
-
-                // Trim chatHistory to remove all messages after this one
-                chatHistory = chatHistory.slice(0, chatHistoryIndex + 1);
-
-                // Also update in state.chatHistory
-                const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
-                if (convo && convo.messages) {
-                    // Find the corresponding message in conversation and update it
-                    for (let i = 0; i < convo.messages.length; i++) {
-                        if (convo.messages[i].role === 'user' &&
-                            i === messagePosition) {
-                            convo.messages[i].content = newText;
-
-                            // Remove all messages after this one
-                            convo.messages = convo.messages.slice(0, i + 1);
-                            break;
-                        }
-                    }
-
+                assistantMsgCount++;
+            }
+        }
+        
+        // Also update in state.chatHistory
+        const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
+        if (convo && convo.messages) {
+            for (let i = 0; i < convo.messages.length; i++) {
+                if (convo.messages[i].role === 'assistant' && 
+                    Array.from(elements.chatMessages.children).indexOf(messageDiv) === i) {
+                    convo.messages[i].content = newText;
+                    
                     // Save updated conversation
                     if (state.settings.saveHistory) {
                         localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
                     }
+                    break;
                 }
-
-                // Show typing indicator and get new response
-                showTypingIndicator();
-                fetchBotResponse(newText);
             }
-        } else {
-            // For assistant messages, just update the UI and state
-            showNotification('Message updated', 'success');
         }
+        
+        showNotification('Message updated', 'success');
     }
-
+}
     /**
      * Cancel message edit
      * @param {HTMLElement} messageBubble - Message bubble element
@@ -973,10 +1186,28 @@ async function handleTextToSpeech(speakerBtn, text) {
 function fetchBotResponse(userMessage) {
     const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
-    // Prepare system message based on personality
+    // Prepare system message based on personality with additional formatting instructions
+    let systemContent = PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant'];
+    
+    // Add formatting instructions
+    systemContent += "\n\n" + 
+        "Please format your responses using Markdown for better readability:" +
+        "\n- Use **bold** and *italic* for emphasis" +
+        "\n- Use `code` for inline code and ```language\ncode\n``` for code blocks" +
+        "\n- Use proper headings with # and ## for sections" +
+        "\n- Use bullet points and numbered lists where appropriate" +
+        "\n- Create tables using Markdown table syntax when displaying tabular data" +
+        "\n- Use > for blockquotes" +
+        "\n- Include language name in code blocks for proper syntax highlighting";
+
+    // Add custom instructions if available
+    if (state.personality.customInstructions) {
+        systemContent += "\n\n" + state.personality.customInstructions;
+    }
+
     const systemMessage = {
         role: "system",
-        content: PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant']
+        content: systemContent
     };
 
     // Add custom instructions if available
