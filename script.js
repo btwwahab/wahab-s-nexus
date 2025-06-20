@@ -387,14 +387,19 @@ function addMessageToUI(role, content) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
 
-    // Set up marked.js options
+    // Set up marked.js options with safer highlight function
     marked.setOptions({
         renderer: new marked.Renderer(),
         highlight: function(code, lang) {
-            if (lang && hljs.getLanguage(lang)) {
-                return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+            // Check if hljs is defined before using it
+            if (typeof hljs !== 'undefined') {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+                }
+                return hljs.highlightAuto(code).value;
             }
-            return hljs.highlightAuto(code).value;
+            // Fallback if hljs is not available
+            return code;
         },
         langPrefix: 'language-',
         pedantic: false,
@@ -403,7 +408,7 @@ function addMessageToUI(role, content) {
         sanitize: false,
         smartypants: true,
         xhtml: false
-    });
+    });;
 
     // Process content based on role
     let processedContent;
