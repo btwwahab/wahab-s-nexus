@@ -1113,7 +1113,17 @@ const personalityResponses = {
 
 
     function fetchBotResponse(userMessage) {
-        const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
+    // Ensure chatHistory only contains messages from current conversation
+    const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
+    if (currentConvo && currentConvo.messages) {
+        // Rebuild chatHistory from current conversation to ensure consistency
+        chatHistory = currentConvo.messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+        }));
+    }
+    
+    const MODEL = state.settings.model || 'llama-3.3-70b-versatile';
 
         // Prepare system message based on personality with additional formatting instructions
         let systemContent = PERSONALITY_INSTRUCTIONS[state.personality.type] || PERSONALITY_INSTRUCTIONS['assistant'];
@@ -1309,28 +1319,43 @@ function createNewConversation() {
     // Generate new conversation ID
     state.activeConversationId = generateId();
     state.activeConversationName = 'New Conversation';
-
+    
+    // Create empty conversation object right away
+    const newConversation = {
+        id: state.activeConversationId,
+        name: state.activeConversationName,
+        timestamp: Date.now(),
+        messages: []
+    };
+    
+    // Add to chat history immediately
+    state.chatHistory.unshift(newConversation);
+    
     // Update UI
     elements.sectionTitle.textContent = state.activeConversationName;
     elements.chatMessages.innerHTML = '';
-
-    // Reset chat history for API context
+    
+    // IMPORTANT: Completely reset chat history for API context
     chatHistory = [];
-
+    
     // Add welcome message
-    const welcomeMessage = "Hello! I'm Wahab , your AI assistant. How can I help you today?";
+    const welcomeMessage = "Hello! I'm Wahab, your AI assistant. How can I help you today?";
     addMessageToUI('assistant', welcomeMessage);
-
-    // Add to API context history but DON'T save to localStorage yet
+    
+    // Add welcome message to chatHistory
     chatHistory.push({
         role: 'assistant',
         content: welcomeMessage
     });
     
-    // Set flag to indicate this is a new conversation without user messages
     state.isNewConversation = true;
-    
     updateSuggestionChips(true);
+    
+    // Save to localStorage
+    if (state.settings.saveHistory) {
+        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+        updateHistoryUI();
+    }
 }
 
     /**
