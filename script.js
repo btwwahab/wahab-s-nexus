@@ -1012,95 +1012,52 @@ document.addEventListener('DOMContentLoaded', function () {
         fetchBotResponse(message);
     }
 
-    /**
-     * Save message to current conversation
-     * @param {string} role - Role of message sender
-     * @param {string} content - Message content
-     */
-    function saveMessageToConversation(role, content) {
-        // Find current conversation in history or create a new one
-        let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
-
-        // If this is user's first message in a new conversation, set a temporary name
-        if (role === 'user' && state.isNewConversation) {
-            state.isNewConversation = false;
-
-            // Set a temporary name with timestamp to ensure uniqueness
-            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            state.activeConversationName = `New Chat (${timestamp})`;
-            elements.sectionTitle.textContent = state.activeConversationName;
-
-            // Create the conversation object now (wasn't saved previously)
-            conversation = {
-                id: state.activeConversationId,
-                name: state.activeConversationName,
-                timestamp: Date.now(),
-                messages: []
-            };
-
-            // Add the welcome message that was displayed but not saved
-            if (chatHistory.length > 0 && chatHistory[0].role === 'assistant') {
-                conversation.messages.push({
-                    role: 'assistant',
-                    content: chatHistory[0].content,
-                    timestamp: Date.now() - 1000 // Slightly earlier timestamp
-                });
-            }
-
-            state.chatHistory.unshift(conversation);
-        }
-
-        if (!conversation) {
-            conversation = {
-                id: state.activeConversationId,
-                name: state.activeConversationName,
-                timestamp: Date.now(),
-                messages: []
-            };
-            state.chatHistory.unshift(conversation);
-        }
-
-        // Add message to conversation
-        conversation.messages.push({
-            role,
-            content,
-            timestamp: Date.now()
-        });
-
-        // Rest of the function remains the same...
-        // (Check message limits, update timestamp, save to localStorage)
-
-        // Check if we've exceeded the message limit
-        if (conversation.messages.length > state.settings.messageLimit) {
-            // Remove oldest messages from UI
-            const messagesToRemove = conversation.messages.length - state.settings.messageLimit;
-
-            // Remove oldest messages from DOM
-            for (let i = 0; i < messagesToRemove; i++) {
-                if (elements.chatMessages.firstChild) {
-                    elements.chatMessages.removeChild(elements.chatMessages.firstChild);
-                }
-            }
-
-            // Remove oldest messages from conversation array
-            conversation.messages = conversation.messages.slice(messagesToRemove);
-
-            // Also update chatHistory for API context to keep in sync
-            chatHistory = chatHistory.slice(messagesToRemove);
-
-            // Show notification
-            showNotification('Older messages have been removed to improve performance', 'info');
-        }
-
-        // Update timestamp
-        conversation.timestamp = Date.now();
-
-        // Save to localStorage if enabled
-        if (state.settings.saveHistory) {
-            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-            updateHistoryUI();
-        }
+/**
+ * Save message to current conversation
+ * @param {string} role - Role of message sender
+ * @param {string} content - Message content
+ */
+function saveMessageToConversation(role, content) {
+    // Find current conversation in history
+    let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
+    
+    // If conversation doesn't exist (should never happen), create it
+    if (!conversation) {
+        console.warn('Conversation not found, creating new one');
+        conversation = {
+            id: state.activeConversationId,
+            name: state.activeConversationName,
+            timestamp: Date.now(),
+            messages: []
+        };
+        state.chatHistory.unshift(conversation);
     }
+    
+    // Special handling for first user message
+    if (role === 'user' && state.isNewConversation) {
+        state.isNewConversation = false;
+        
+        // Update active conversation in UI, but don't create a new one
+        elements.sectionTitle.textContent = state.activeConversationName;
+    }
+    
+    // Add message to conversation
+    conversation.messages.push({
+        role,
+        content,
+        timestamp: Date.now()
+    });
+    
+    // Update timestamp
+    conversation.timestamp = Date.now();
+    
+    // Save to localStorage if enabled
+    if (state.settings.saveHistory) {
+        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
+        updateHistoryUI();
+    }
+}
 
     /**
      * Generate a conversation name from the first user message
@@ -1285,12 +1242,16 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    /**
-     * Use AI to generate a better conversation name
-     */
+/**
+ * Use AI to generate a better conversation name
+ */
 function generateAIConversationName(userMsg, aiReply) {
     // Add a short delay to ensure the API isn't overloaded
     setTimeout(() => {
+        // Get current date/time for uniqueness
+        const timestamp = new Date().toLocaleString();
+        const convoId = state.activeConversationId.substring(0, 8);
+        
         // Use existing API call structure
         fetch('/api/chat', {
             method: 'POST',
@@ -1300,15 +1261,17 @@ function generateAIConversationName(userMsg, aiReply) {
                 messages: [
                     {
                         role: "system",
-                        content: "You are a helpful assistant that generates short, descriptive titles. Create a clear, specific title that captures the main topic of the conversation. Maximum 5 words."
+                        content: "You are a helpful assistant that generates creative, unique conversation titles. Create a specific title that captures the main topic, using between 2-5 words. Be descriptive and varied in your naming approach. Each title should feel distinct even for similar topics."
                     },
                     {
                         role: "user",
-                        content: `Based on this conversation, generate a concise, specific title (max 5 words):\nUser: ${userMsg}\nAI: ${aiReply.substring(0, 100)}`
+                        content: `Based on this conversation started on ${timestamp} (ID: ${convoId}), generate a concise, specific, and UNIQUE title (max 5 words):\nUser: ${userMsg}\nAI: ${aiReply.substring(0, 100)}\n\nImportant: Ensure this title is different from typical titles you might generate for similar conversations.`
                     }
                 ],
-                temperature: 0.7,
-                max_tokens: 20
+                temperature: 0.9, // Higher temperature for more creativity
+                max_tokens: 20,
+                top_p: 1,
+                frequency_penalty: 0.5 // Add some penalty for repetitive tokens
             })
         })
         .then(response => response.json())
@@ -1318,11 +1281,17 @@ function generateAIConversationName(userMsg, aiReply) {
                 // Remove quotes if present
                 title = title.replace(/^["'](.*)["']$/, '$1');
                 
+                // Add small random suffix if the title is very short (< 10 chars)
+                if (title.length < 10) {
+                    const randomSuffix = Math.floor(Math.random() * 1000);
+                    title = `${title} ${randomSuffix}`;
+                }
+                
                 // Update conversation name
                 state.activeConversationName = title;
                 elements.sectionTitle.textContent = title;
                 
-                // Update in chat history - use both ID and timestamp to ensure uniqueness
+                // Update in chat history
                 const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
                 if (convo) {
                     convo.name = title;
@@ -1364,48 +1333,58 @@ function generateAIConversationName(userMsg, aiReply) {
     /**
      * Create new conversation
      */
-    function createNewConversation() {
-        // Generate new conversation ID
-        state.activeConversationId = generateId();
-        state.activeConversationName = 'New Conversation';
-
-        // Create empty conversation object right away
-        const newConversation = {
-            id: state.activeConversationId,
-            name: state.activeConversationName,
-            timestamp: Date.now(),
-            messages: []
-        };
-
-        // Add to chat history immediately
-        state.chatHistory.unshift(newConversation);
-
-        // Update UI
-        elements.sectionTitle.textContent = state.activeConversationName;
-        elements.chatMessages.innerHTML = '';
-
-        // IMPORTANT: Completely reset chat history for API context
-        chatHistory = [];
-
-        // Add welcome message
-        const welcomeMessage = "Hello! I'm Wahab, your AI assistant. How can I help you today?";
-        addMessageToUI('assistant', welcomeMessage);
-
-        // Add welcome message to chatHistory
-        chatHistory.push({
+function createNewConversation() {
+    // Generate new conversation ID
+    state.activeConversationId = generateId();
+    
+    // Use a timestamp for the initial temporary name
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    state.activeConversationName = `New Chat (${timestamp})`;
+    
+    // Update UI
+    elements.sectionTitle.textContent = state.activeConversationName;
+    elements.chatMessages.innerHTML = '';
+    
+    // Reset chat history for API context
+    chatHistory = [];
+    
+    // Add welcome message
+    const welcomeMessage = "Hello! I'm Wahab, your AI assistant. How can I help you today?";
+    addMessageToUI('assistant', welcomeMessage);
+    
+    // Add welcome message to chatHistory for API context
+    chatHistory.push({
+        role: 'assistant',
+        content: welcomeMessage
+    });
+    
+    // Create conversation object with welcome message
+    const newConversation = {
+        id: state.activeConversationId,
+        name: state.activeConversationName,
+        timestamp: Date.now(),
+        messages: [{
             role: 'assistant',
-            content: welcomeMessage
-        });
-
-        state.isNewConversation = true;
-        updateSuggestionChips(true);
-
-        // Save to localStorage
-        if (state.settings.saveHistory) {
-            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-            updateHistoryUI();
-        }
+            content: welcomeMessage,
+            timestamp: Date.now()
+        }]
+    };
+    
+    // Add to chat history
+    state.chatHistory.unshift(newConversation);
+    
+    // Flag for first user message handling
+    state.isNewConversation = true;
+    
+    // Save to localStorage
+    if (state.settings.saveHistory) {
+        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
+        updateHistoryUI();
     }
+    
+    updateSuggestionChips(true);
+}
 
     /**
      * Resize input based on content
