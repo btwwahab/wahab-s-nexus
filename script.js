@@ -378,6 +378,25 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+        /**
+ * Safely apply syntax highlighting to code blocks
+ * @param {HTMLElement} element - Element containing code to highlight
+ */
+function safelyApplyHighlighting(element) {
+    if (typeof hljs === 'undefined') {
+        console.warn('Highlight.js not available for syntax highlighting');
+        return;
+    }
+    
+    element.querySelectorAll('pre code').forEach((block) => {
+        try {
+            hljs.highlightElement(block);
+        } catch (error) {
+            console.warn('Error applying syntax highlighting:', error);
+        }
+    });
+}
+
     /**
      * Add a message to the UI
      * @param {string} role - Role of message sender ('user' or 'assistant')
@@ -506,13 +525,13 @@ function addMessageToUI(role, content) {
 
     elements.chatMessages.appendChild(messageDiv);
     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+
+
     
     // Apply syntax highlighting to code blocks
-    if (role === 'assistant') {
-        messageDiv.querySelectorAll('pre code').forEach((block) => {
-            hljs.highlightElement(block);
-        });
-    }
+if (role === 'assistant') {
+    safelyApplyHighlighting(messageDiv);
+}
 }
 
     /**
@@ -847,13 +866,16 @@ function saveMessageEdit(messageDiv, messageBubble, originalText) {
         
         // Set up marked.js options
         marked.setOptions({
-            renderer: new marked.Renderer(),
-            highlight: function(code, lang) {
-                if (lang && hljs.getLanguage(lang)) {
-                    return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
-                }
-                return hljs.highlightAuto(code).value;
-            },
+    renderer: new marked.Renderer(),
+    highlight: function(code, lang) {
+        if (typeof hljs === 'undefined') {
+            return code;
+        }
+        if (lang && hljs.getLanguage(lang)) {
+            return hljs.highlight(code, { language: lang, ignoreIllegals: true }).value;
+        }
+        return hljs.highlightAuto(code).value;
+    },
             langPrefix: 'language-',
             pedantic: false,
             gfm: true,
@@ -923,10 +945,8 @@ function saveMessageEdit(messageDiv, messageBubble, originalText) {
             });
         });
         
-        // Apply syntax highlighting to code blocks
-        messageBubble.querySelectorAll('pre code').forEach((block) => {
-            hljs.highlightElement(block);
-        });
+// Apply syntax highlighting to code blocks
+safelyApplyHighlighting(messageBubble);
     }
 
     // If it's a user message, update the chatHistory and get new response
