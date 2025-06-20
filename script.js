@@ -1211,13 +1211,13 @@ function saveMessageToConversation(role, content) {
                     updateSuggestionChips();
 
                     // ALWAYS generate an AI name after the first exchange, not just sometimes
-                    const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
-                    if (currentConvo && currentConvo.messages.length <= 2) {
-                        // Use a more prominent visual indicator that naming is happening
-                        elements.sectionTitle.textContent = "Generating name...";
-                        // Always generate AI name for every new conversation
-                        generateAIConversationName(userMessage, responseContent);
-                    }
+const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
+// The condition was the issue - make it ALWAYS generate a name when it's a new conversation
+if (currentConvo && (currentConvo.messages.length <= 2 || state.isNewConversation === false)) {
+    elements.sectionTitle.textContent = "Generating name...";
+    console.log("Generating AI name for conversation:", state.activeConversationId);
+    generateAIConversationName(userMessage, responseContent);
+}
                 } else {
                     throw new Error('Invalid response format from API');
                 }
@@ -1248,7 +1248,7 @@ function saveMessageToConversation(role, content) {
 function generateAIConversationName(userMsg, aiReply) {
     // Add a short delay to ensure the API isn't overloaded
     setTimeout(() => {
-        // Get current date/time for uniqueness
+        // Define these variables - they were missing!
         const timestamp = new Date().toLocaleString();
         const convoId = state.activeConversationId.substring(0, 8);
         
