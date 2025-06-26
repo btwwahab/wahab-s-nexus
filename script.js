@@ -86,10 +86,10 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const PERSONALITY_INSTRUCTIONS = {
-        'assistant': "You are Wahab , a professional AI assistant. Provide clear and concise answers to inquiries.",
-        'developer': "You are Wahab , a technical AI assistant focused on code and development. Provide explanations with code examples when appropriate.",
-        'teacher': "You are Wahab , an educational AI assistant. Explain concepts thoroughly with examples and analogies that are easy to understand.",
-        'creative': "You are Wahab , a creative AI partner. Provide imaginative and inspiring responses to help with creative projects."
+        'assistant': "You are Aziona , a professional AI assistant. Provide clear and concise answers to inquiries.",
+        'developer': "You are Aziona , a technical AI assistant focused on code and development. Provide explanations with code examples when appropriate.",
+        'teacher': "You are Aziona , an educational AI assistant. Explain concepts thoroughly with examples and analogies that are easy to understand.",
+        'creative': "You are Aziona , a creative AI partner. Provide imaginative and inspiring responses to help with creative projects."
     };
 
     // Chat history for API context (separate from state.chatHistory for API usage)
@@ -1349,7 +1349,7 @@ function createNewConversation() {
     chatHistory = [];
     
     // Add welcome message
-    const welcomeMessage = "Hello! I'm Wahab, your AI assistant. How can I help you today?";
+    const welcomeMessage = "Hello! I'm Aziona, your AI assistant. How can I help you today?";
     addMessageToUI('assistant', welcomeMessage);
     
     // Add welcome message to chatHistory for API context
@@ -2141,7 +2141,7 @@ function createNewConversation() {
 
             let exportText = `# ${convo.name || 'Conversation'}\n\n`;
             convo.messages.forEach(msg => {
-                exportText += `## ${msg.role === 'user' ? 'You' : 'Wahab AI'}\n${msg.content}\n\n`;
+                exportText += `## ${msg.role === 'user' ? 'You' : 'Aziona AI'}\n${msg.content}\n\n`;
             });
 
             // Create and download the file

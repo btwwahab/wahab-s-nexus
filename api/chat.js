@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     const API_KEY = process.env.GROQ_API_KEY; // This will get the key from Vercel environment variables
     
     if (!API_KEY) {
-      console.error('GROQ_API_KEY environment variable is not set');
+      console.error('AZIONA_API_KEY environment variable is not set');
       return res.status(500).json({ 
         error: 'Server configuration error',
         message: 'API key not configured on server' 
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
 
     const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
     
-    console.log('Making request to Groq API...');
+    console.log('Making request to Aziona API...');
     
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Groq API Error:', response.status, errorText);
+      console.error('Aziona Core API Error:', response.status, errorText);
       return res.status(response.status).json({ 
         error: 'API request failed',
         message: errorText || response.statusText
