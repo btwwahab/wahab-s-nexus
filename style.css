@@ -496,6 +496,8 @@ body {
     flex-direction: column;
     max-width: 80%;
     animation: fadeIn 0.3s ease, slideIn 0.3s ease;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 @keyframes fadeIn {
@@ -538,6 +540,9 @@ body {
     line-height: 1.6;
     position: relative;
     overflow: hidden;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
 }
 
 .message.assistant .message-bubble {
@@ -1912,7 +1917,7 @@ body.light-theme .user .message-bubble {
     }
 
     .chat-messages {
-        padding: 1.2rem;
+        padding: 1.2rem 0.8rem;
     }
 
     .message {
@@ -2018,6 +2023,9 @@ body.light-theme .user .message-bubble {
         padding: 0.8rem 1.2rem;
         line-height: 1.5;
         font-size: 0.95rem;
+                word-break: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
     }
     
     .personality-card h4 {
@@ -2145,6 +2153,15 @@ body.light-theme .user .message-bubble {
         max-width: 95%;
     }
 
+        .message-bubble {
+        padding: 0.7rem 1rem;
+        font-size: 0.9rem;
+    }
+
+        .chat-messages {
+        padding: 1rem 0.5rem; /* Even less padding on very small screens */
+    }
+
     .section-title{
         margin-left: 50px;
         font-size: 1rem;
@@ -2206,6 +2223,9 @@ body.light-theme .user .message-bubble {
     font-family: 'Inter', sans-serif;
     line-height: 1.6;
     color: var(--text-primary);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
 }
 
 /* Headings */
@@ -2264,6 +2284,8 @@ body.light-theme .user .message-bubble {
     font-size: 0.9em;
     line-height: 1.5;
     border: 1px solid var(--border-color);
+    max-width: 100%;
+    white-space: pre-wrap;
 }
 
 .markdown-content pre code {
@@ -2304,6 +2326,9 @@ body.light-theme .user .message-bubble {
     background: rgba(30, 41, 59, 0.6);
     border-radius: 8px;
     overflow: hidden;
+        display: block;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 .markdown-content th {
@@ -2340,6 +2365,8 @@ body.light-theme .user .message-bubble {
     color: var(--accent-color);
     text-decoration: none;
     transition: var(--transition);
+        word-break: break-all;
+    overflow-wrap: break-word;
 }
 
 .markdown-content a:hover {
@@ -2489,6 +2516,69 @@ body.light-theme .markdown-content th {
     .footer-bottom p {
         font-size: 0.8rem;
     }
+
+        .markdown-content pre {
+        font-size: 0.8em;
+        padding: 0.8em;
+        overflow-x: auto;
+        white-space: pre;
+        word-wrap: normal;
+    }
+    
+    .markdown-content pre code {
+        font-size: 0.8em;
+        white-space: pre;
+    }
+    
+    /* Make code header responsive */
+    .code-header {
+        padding: 0.4em 0.8em;
+        font-size: 0.8em;
+        flex-wrap: wrap;
+        gap: 0.5em;
+    }
+    
+    .copy-button {
+        font-size: 0.75em;
+        padding: 0.2em 0.4em;
+    }
+
+        .markdown-content table {
+        font-size: 0.85em;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        max-width: 100%;
+    }
+    
+    .markdown-content th,
+    .markdown-content td {
+        padding: 0.5em 0.75em;
+        min-width: 100px;
+    }
+
+        .markdown-content ul, 
+    .markdown-content ol {
+        padding-left: 1.5em;
+    }
+    
+    .markdown-content li {
+        margin-bottom: 0.4em;
+        word-wrap: break-word;
+    }
+
+        .markdown-content blockquote {
+        margin: 0.8em 0;
+        padding: 0.4em 0.8em;
+        font-size: 0.9em;
+    }
+
+    .markdown-content h1 { font-size: 1.5em; }
+    .markdown-content h2 { font-size: 1.3em; }
+    .markdown-content h3 { font-size: 1.2em; }
+    .markdown-content h4 { font-size: 1.1em; }
+    .markdown-content h5 { font-size: 1.05em; }
+    .markdown-content h6 { font-size: 1em; }
 }
 
 @media (max-width: 480px) {

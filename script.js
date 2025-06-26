@@ -485,28 +485,51 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Create message content
-        messageDiv.innerHTML = `
-        <div class="message-content">
-            <div class="message-bubble ${role === 'assistant' ? 'markdown-content' : ''}">
-                ${processedContent}
-            </div>
-            <div class="message-time">${getCurrentTime()}</div>
-            <div class="message-actions">
-                ${role === 'assistant' ? `
-                    <button class="message-action-btn" title="Copy to clipboard">
-                        <i class="fas fa-copy"></i>
-                    </button>
-                    <button class="message-action-btn" title="Read aloud">
-                        <i class="fas fa-volume-up"></i>
-                    </button>
-                ` : `
-                    <button class="message-action-btn" title="Edit">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
-                `}
-            </div>
+messageDiv.innerHTML = `
+    <div class="message-content">
+        <div class="message-bubble ${role === 'assistant' ? 'markdown-content' : ''}">
+            ${processedContent}
         </div>
-    `;
+        <div class="message-time">${getCurrentTime()}</div>
+        <div class="message-actions">
+            ${role === 'assistant' ? `
+                <button class="message-action-btn" title="Copy to clipboard">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button class="message-action-btn" title="Read aloud">
+                    <i class="fas fa-volume-up"></i>
+                </button>
+            ` : `
+                <button class="message-action-btn" title="Edit">
+                    <i class="fas fa-pencil-alt"></i>
+                </button>
+            `}
+        </div>
+    </div>
+`;
+
+// Add this new code to ensure mobile responsiveness
+if (window.innerWidth <= 768) {
+    // Force reflow for mobile
+    messageDiv.style.maxWidth = '95%';
+    
+    // Ensure all pre elements in the message are scrollable
+    const preElements = messageDiv.querySelectorAll('pre');
+    preElements.forEach(pre => {
+        pre.style.overflowX = 'auto';
+        pre.style.maxWidth = '100%';
+    });
+    
+    // Ensure tables are scrollable
+    const tables = messageDiv.querySelectorAll('table');
+    tables.forEach(table => {
+        const wrapper = document.createElement('div');
+        wrapper.style.overflowX = 'auto';
+        wrapper.style.maxWidth = '100%';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+    });
+}
 
         // Add event listeners for message actions
         setupMessageActions(messageDiv, content, role);
