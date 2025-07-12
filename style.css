@@ -2979,6 +2979,319 @@ body.light-theme .markdown-content th {
     }
 }
 
+/* Add these styles to your existing CSS */
+
+/* YouTube Video Player Styles */
+.youtube-player-embed {
+    margin: 1rem 0;
+    border-radius: var(--element-radius);
+    overflow: hidden;
+    background: var(--glass-bg);
+    border: var(--glass-border);
+    padding: 0.5rem;
+}
+
+.youtube-player-container {
+    position: relative;
+    margin: 1rem 0;
+}
+
+.youtube-player-container iframe {
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+}
+
+.player-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.youtube-action-btn {
+    background: var(--glass-bg);
+    border: var(--glass-border);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--element-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    backdrop-filter: blur(5px);
+}
+
+.youtube-action-btn:hover {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--glow);
+}
+
+.youtube-action-btn.secondary {
+    background: transparent;
+    border: 1px solid var(--border-color);
+}
+
+/* Play Button Styles */
+.youtube-play-button-container {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+    flex-wrap: wrap;
+}
+
+.youtube-play-btn {
+    background: linear-gradient(135deg, #FF0000, #CC0000);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--element-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 3px 10px rgba(255, 0, 0, 0.3);
+}
+
+.youtube-play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(255, 0, 0, 0.4);
+}
+
+.youtube-play-btn i {
+    font-size: 1rem;
+}
+
+/* Playlist Player Styles */
+.youtube-playlist-container {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 1rem;
+    margin: 1rem 0;
+    background: var(--glass-bg);
+    border: var(--glass-border);
+    border-radius: var(--element-radius);
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+}
+
+.current-player {
+    width: 100%;
+}
+
+.playlist-sidebar {
+    background: rgba(30, 41, 59, 0.4);
+    border-radius: var(--element-radius);
+    padding: 1rem;
+    border: var(--glass-border);
+}
+
+.playlist-sidebar h4 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+.playlist-items {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.playlist-item {
+    display: flex;
+    gap: 0.8rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 0.5rem;
+    border: 1px solid transparent;
+}
+
+.playlist-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.playlist-item.active {
+    background: var(--accent-light);
+    border-color: var(--accent-color);
+}
+
+.playlist-thumbnail {
+    width: 60px;
+    height: 45px;
+    border-radius: 4px;
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+}
+
+.playlist-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.playlist-title {
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.3;
+    margin-bottom: 0.2rem;
+    color: var(--text-primary);
+    word-wrap: break-word;
+}
+
+.playlist-duration {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Mobile Responsive Video Player */
+@media (max-width: 768px) {
+    .youtube-playlist-container {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 0.8rem;
+    }
+
+    .playlist-sidebar {
+        order: 2;
+        max-height: 300px;
+    }
+
+    .current-player {
+        order: 1;
+    }
+
+    .youtube-player-container iframe {
+        height: 250px !important;
+    }
+
+    .player-controls {
+        gap: 0.3rem;
+    }
+
+    .youtube-action-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .youtube-play-btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .youtube-play-button-container {
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+
+    .playlist-item {
+        padding: 0.6rem;
+        gap: 0.6rem;
+    }
+
+    .playlist-thumbnail {
+        width: 50px;
+        height: 38px;
+    }
+
+    .playlist-title {
+        font-size: 0.8rem;
+    }
+
+    .playlist-duration {
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .youtube-player-embed {
+        padding: 0.3rem;
+        margin: 0.8rem 0;
+    }
+
+    .youtube-player-container iframe {
+        height: 200px !important;
+    }
+
+    .youtube-action-btn {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+    }
+
+    .youtube-play-btn {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .playlist-sidebar {
+        padding: 0.8rem;
+    }
+
+    .playlist-items {
+        max-height: 250px;
+    }
+}
+
+/* Light theme adjustments */
+body.light-theme .youtube-player-embed {
+    background: rgba(226, 232, 240, 0.6);
+}
+
+body.light-theme .playlist-sidebar {
+    background: rgba(226, 232, 240, 0.4);
+}
+
+body.light-theme .playlist-item.active {
+    background: rgba(0, 136, 255, 0.1);
+}
+
+/* Video loading state */
+.youtube-player-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 315px;
+    background: var(--glass-bg);
+    border-radius: 8px;
+    border: var(--glass-border);
+}
+
+.youtube-player-loading i {
+    font-size: 2rem;
+    color: var(--accent-color);
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive iframe container */
+.youtube-responsive-container {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.youtube-responsive-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
 /* Special handling for YouTube content in message bubbles */
 .message .youtube-result {
     margin: 0.5rem 0;
@@ -3506,3 +3819,4 @@ body.light-theme .mobile-action-overlay {
 body.light-theme .mobile-action-content {
     box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.1);
 }
+
