@@ -95,67 +95,63 @@ document.addEventListener('DOMContentLoaded', function () {
     // Chat history for API context (separate from state.chatHistory for API usage)
     let chatHistory = [];
 
-function init() {
-    console.log('Initializing application...');
-    
-    // Load settings and personality first
-    loadSavedState();
-    initializeTheme();
-    initParticles();
+    /**
+     * Initialization
+     */
+    function init() {
+        // Load settings and personality
+        loadSavedState();
+        initializeTheme();
+        initParticles();
 
-    // Handle conversation loading
-    if (state.settings.saveHistory) {
-        try {
-            const conversations = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONVERSATIONS) || '{}');
-            if (Object.keys(conversations).length > 0) {
-                // Convert to array format for state.chatHistory
-                state.chatHistory = Object.values(conversations).map(conv => ({
-                    id: conv.id,
-                    name: conv.name,
-                    timestamp: conv.updatedAt || conv.timestamp || Date.now(),
-                    messages: conv.messages || []
-                }));
-                
-                updateHistoryUI();
+        // Handle conversation loading
+        if (state.settings.saveHistory) {
+            try {
+                const savedHistory = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
+                if (savedHistory) {
+                    state.chatHistory = JSON.parse(savedHistory);
+                    updateHistoryUI();
 
-                // Check for an active conversation
-                const activeConvId = localStorage.getItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-                if (activeConvId && conversations[activeConvId]) {
-                    console.log('Loading active conversation:', activeConvId);
-                    loadConversation(activeConvId);
-                } else {
-                    // Clear invalid active conversation
-                    localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-                    if (state.chatHistory.length > 0) {
-                        // Load most recent conversation
-                        const mostRecent = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
-                        if (mostRecent) {
-                            console.log('Loading most recent conversation:', mostRecent.id);
+                    // Check for an active conversation
+                    const activeConvId = localStorage.getItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
+                    if (activeConvId) {
+                        const conversation = state.chatHistory.find(c => c.id === activeConvId);
+                        if (conversation) {
+                            // Load this conversation
+                            loadConversation(activeConvId);
+                        } else if (state.chatHistory.length > 0) {
+                            // If active conversation not found but history exists, load most recent
+                            const mostRecent = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
                             loadConversation(mostRecent.id);
                         }
+                    } else if (state.chatHistory.length > 0) {
+                        // If no active conversation but history exists, load the most recent one
+                        const mostRecent = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
+                        loadConversation(mostRecent.id);
                     } else {
-                        showEmptyHistoryState();
+                        // Empty UI state
+                        elements.chatMessages.innerHTML = '';
+                        elements.sectionTitle.textContent = "Select a conversation";
                     }
+                } else {
+                    // Empty UI state
+                    elements.chatMessages.innerHTML = '';
+                    elements.sectionTitle.textContent = "Start a new conversation";
+                    showEmptyHistoryState();
                 }
-            } else {
+            } catch (error) {
+                console.error('Error loading conversation history:', error);
+                showNotification('Failed to load conversation history', 'error');
                 showEmptyHistoryState();
             }
-        } catch (error) {
-            console.error('Error loading conversation history:', error);
-            showNotification('Failed to load conversation history', 'error');
-            // Clear corrupted data and start fresh
-            localStorage.removeItem(STORAGE_KEYS.CONVERSATIONS);
-            localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-            showEmptyHistoryState();
+        } else {
+            // History saving disabled - just show empty state
+            elements.chatMessages.innerHTML = '';
+            elements.sectionTitle.textContent = "Start a new conversation";
         }
-    } else {
-        elements.chatMessages.innerHTML = '';
-        elements.sectionTitle.textContent = "Start a new conversation";
-    }
 
-    setupEventListeners();
-    console.log('Application initialized successfully');
-}
+        setupEventListeners();
+    }
 
     /**
      * Load saved state from localStorage
@@ -269,50 +265,28 @@ function init() {
     /**
      * Load conversation history from localStorage
      */
-function loadConversationHistory() {
-    try {
-        const savedConversations = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
-        if (savedConversations) {
-            const conversations = JSON.parse(savedConversations);
-            
-            // Convert to array format for state.chatHistory
-            state.chatHistory = Object.values(conversations).map(conv => ({
-                id: conv.id,
-                name: conv.name,
-                timestamp: conv.updatedAt || conv.timestamp || Date.now(),
-                messages: conv.messages || []
-            }));
-            
-            updateHistoryUI();
+    function loadConversationHistory() {
+        try {
+            const savedHistory = localStorage.getItem(STORAGE_KEYS.CONVERSATIONS);
+            if (savedHistory) {
+                state.chatHistory = JSON.parse(savedHistory);
+                updateHistoryUI();
 
-            // Load active conversation if exists
-            const activeConvId = localStorage.getItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-            if (activeConvId && conversations[activeConvId]) {
-                state.activeConversationId = activeConvId;
-                loadConversation(activeConvId);
-            } else {
-                // Clear invalid active conversation
-                localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-                if (state.chatHistory.length > 0) {
-                    // Load most recent conversation
-                    const mostRecent = state.chatHistory.sort((a, b) => b.timestamp - a.timestamp)[0];
-                    loadConversation(mostRecent.id);
-                } else {
-                    showEmptyHistoryState();
+                // Load active conversation if exists
+                const activeConvId = localStorage.getItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
+                if (activeConvId) {
+                    state.activeConversationId = activeConvId;
+                    loadConversation(activeConvId);
                 }
+            } else {
+                showEmptyHistoryState();
             }
-        } else {
+        } catch (error) {
+            console.error('Error loading conversation history:', error);
+            showNotification('Failed to load conversation history', 'error');
             showEmptyHistoryState();
         }
-    } catch (error) {
-        console.error('Error loading conversation history:', error);
-        showNotification('Failed to load conversation history', 'error');
-        // Clear corrupted data and start fresh
-        localStorage.removeItem(STORAGE_KEYS.CONVERSATIONS);
-        localStorage.removeItem(STORAGE_KEYS.ACTIVE_CONVERSATION);
-        showEmptyHistoryState();
     }
-}
 
     /**
      * Show empty state in history container
@@ -330,50 +304,39 @@ function loadConversationHistory() {
     /**
      * Update history UI with current state
      */
-function updateHistoryUI() {
-    if (!state.chatHistory.length) {
-        showEmptyHistoryState();
-        return;
-    }
+    function updateHistoryUI() {
+        if (!state.chatHistory.length) {
+            showEmptyHistoryState();
+            return;
+        }
 
-    const fragment = document.createDocumentFragment();
-    
-    // Sort by timestamp descending (most recent first)
-    const sortedHistory = [...state.chatHistory].sort((a, b) => b.timestamp - a.timestamp);
+        const fragment = document.createDocumentFragment();
 
-    sortedHistory.forEach(convo => {
-        const historyItem = document.createElement('div');
-        historyItem.className = 'history-item';
-        historyItem.dataset.id = convo.id;
+        state.chatHistory.forEach(convo => {
+            const historyItem = document.createElement('div');
+            historyItem.className = 'history-item';
+            historyItem.dataset.id = convo.id;
 
-        // Get first message preview or default text
-        const preview = convo.messages && convo.messages.length > 0
-            ? convo.messages[0].content.substring(0, 60) + (convo.messages[0].content.length > 60 ? '...' : '')
-            : 'Empty conversation';
+            // Get first message preview or default text
+            const preview = convo.messages && convo.messages.length > 0
+                ? convo.messages[0].content.substring(0, 60) + (convo.messages[0].content.length > 60 ? '...' : '')
+                : 'Empty conversation';
 
-        historyItem.innerHTML = `
-            <div class="history-header">
-                <div class="history-title">${convo.name || 'Unnamed Conversation'}</div>
-                <div class="history-date">${formatDate(convo.timestamp || Date.now())}</div>
-            </div>
-            <div class="history-preview">${preview}</div>
-        `;
+            historyItem.innerHTML = `
+                <div class="history-header">
+                    <div class="history-title">${convo.name || 'Unnamed Conversation'}</div>
+                    <div class="history-date">${formatDate(convo.timestamp || Date.now())}</div>
+                </div>
+                <div class="history-preview">${preview}</div>
+            `;
 
-        historyItem.addEventListener('click', () => {
-            loadConversation(convo.id);
-            
-            // Close mobile menu if open
-            if (window.innerWidth <= 768) {
-                elements.sidePanel.classList.remove('active');
-            }
+            historyItem.addEventListener('click', () => loadConversation(convo.id));
+            fragment.appendChild(historyItem);
         });
-        
-        fragment.appendChild(historyItem);
-    });
 
-    elements.historyContainer.innerHTML = '';
-    elements.historyContainer.appendChild(fragment);
-}
+        elements.historyContainer.innerHTML = '';
+        elements.historyContainer.appendChild(fragment);
+    }
 
     /**
      * Format date for history items
@@ -411,103 +374,50 @@ function updateHistoryUI() {
      * Load a specific conversation
      * @param {string} conversationId - ID of conversation to load
      */
+    function loadConversation(conversationId) {
+        const conversation = state.chatHistory.find(c => c.id === conversationId);
+        if (!conversation) return;
 
-function loadConversation(conversationId) {
-    // Use the new localStorage structure
-    const conversations = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONVERSATIONS) || '{}');
-    const conversation = conversations[conversationId];
-    
-    if (!conversation) {
-        console.error('Conversation not found:', conversationId);
-        // Instead of failing, create a new conversation
-        console.log('Creating new conversation since the requested one was not found');
-        createNewConversation();
-        return;
-    }
+        // Update state
+        state.activeConversationId = conversationId;
+        state.activeConversationName = conversation.name || 'Unnamed Conversation';
 
-    // Set active conversation
-    state.activeConversationId = conversationId;
-    state.activeConversationName = conversation.name || 'Unnamed Conversation';
+        // Update UI
+        elements.sectionTitle.textContent = state.activeConversationName;
+        elements.chatMessages.innerHTML = '';
 
-    // Update UI
-    elements.sectionTitle.textContent = state.activeConversationName;
-    elements.chatMessages.innerHTML = '';
+        // Reset chat history array for API context
+        chatHistory = [];
 
-    // Reset chat history array for API context
-    chatHistory = [];
-
-    // Load messages with proper YouTube processing
-    if (conversation.messages?.length) {
-        conversation.messages.forEach(msg => {
-            // Check if message contains YouTube content
-            const hasYouTubeButtons = msg.content.includes('[PLAY_BUTTON:') || msg.content.includes('[PLAYER:');
-            const hasYouTubeSearch = msg.content.includes('📝 Search Results') && msg.content.includes('videos');
-            
-            if (hasYouTubeButtons || hasYouTubeSearch) {
-                // Try to extract video data from the message
-                const videoIds = [];
-                const buttonMatches = msg.content.match(/\[PLAY_BUTTON:([^\]]+)\]/g);
-                const playerMatches = msg.content.match(/\[PLAYER:([^\]]+)\]/g);
-                
-                if (buttonMatches) {
-                    buttonMatches.forEach(match => {
-                        const videoId = match.match(/\[PLAY_BUTTON:([^\]]+)\]/)[1];
-                        videoIds.push(videoId);
-                    });
-                }
-                
-                if (playerMatches) {
-                    playerMatches.forEach(match => {
-                        const videoId = match.match(/\[PLAYER:([^\]]+)\]/)[1];
-                        videoIds.push(videoId);
-                    });
-                }
-                
-                // Create mock video objects for processing
-                const mockVideos = videoIds.map(id => ({
-                    id: { videoId: id },
-                    snippet: {
-                        title: 'Video',
-                        channelTitle: 'Channel',
-                        thumbnails: {
-                            default: { url: `https://img.youtube.com/vi/${id}/default.jpg` },
-                            medium: { url: `https://img.youtube.com/vi/${id}/mqdefault.jpg` }
-                        }
-                    }
-                }));
-                
-                // Use the special function for YouTube messages
-                addMessageToUIWithPlayers(msg.role, msg.content, mockVideos);
-            } else {
-                // Regular message
+        // Populate messages
+        if (conversation.messages?.length) {
+            conversation.messages.forEach(msg => {
+                // Add to UI
                 addMessageToUI(msg.role, msg.content);
-            }
 
-            // Add to API context history
-            chatHistory.push({
-                role: msg.role,
-                content: msg.content
+                // Add to API context history
+                chatHistory.push({
+                    role: msg.role,
+                    content: msg.content
+                });
             });
-        });
-    }
-
-    // Save active conversation to localStorage
-    if (state.settings.saveHistory) {
-        localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, conversationId);
-    }
-
-    // Update active tab
-    const conversationsTab = document.getElementById('conversations-content');
-    if (conversationsTab) {
-        elements.menuItems.forEach(mi => mi.classList.remove('active'));
-        const conversationMenuItem = document.querySelector('.menu-item[data-tab="conversations"]');
-        if (conversationMenuItem) {
-            conversationMenuItem.classList.add('active');
         }
-        elements.tabContents.forEach(content => content.classList.remove('active'));
-        conversationsTab.classList.add('active');
+
+        // Save active conversation to localStorage
+        if (state.settings.saveHistory) {
+            localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, conversationId);
+        }
+
+        // Change this in loadConversation function:
+        const conversationsTab = document.getElementById('conversations-content');
+        if (conversationsTab) {
+            elements.menuItems.forEach(mi => mi.classList.remove('active'));
+            // Change this line that's causing the error:
+            document.querySelector('.menu-item[data-tab="conversations"]').classList.add('active');
+            elements.tabContents.forEach(content => content.classList.remove('active'));
+            conversationsTab.classList.add('active');
+        }
     }
-}
 
     /**
      * Add a message to the UI
@@ -1130,66 +1040,47 @@ function loadConversation(conversationId) {
      * @param {string} role - Role of message sender
      * @param {string} content - Message content
      */
-function saveMessageToConversation(role, content) {
-    if (!state.settings.saveHistory) return;
+    function saveMessageToConversation(role, content) {
+        // Find current conversation in history
+        let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
 
-    const conversations = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONVERSATIONS) || '{}');
-    
-    // Initialize conversation if it doesn't exist
-    if (!conversations[state.activeConversationId]) {
-        conversations[state.activeConversationId] = {
-            id: state.activeConversationId,
-            name: state.activeConversationName,
-            messages: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
+        // If conversation doesn't exist (should never happen), create it
+        if (!conversation) {
+            console.warn('Conversation not found, creating new one');
+            conversation = {
+                id: state.activeConversationId,
+                name: state.activeConversationName,
+                timestamp: Date.now(),
+                messages: []
+            };
+            state.chatHistory.unshift(conversation);
+        }
+
+        // Special handling for first user message
+        if (role === 'user' && state.isNewConversation) {
+            state.isNewConversation = false;
+
+            // Update active conversation in UI, but don't create a new one
+            elements.sectionTitle.textContent = state.activeConversationName;
+        }
+
+        // Add message to conversation
+        conversation.messages.push({
+            role,
+            content,
+            timestamp: Date.now()
+        });
+
+        // Update timestamp
+        conversation.timestamp = Date.now();
+
+        // Save to localStorage if enabled
+        if (state.settings.saveHistory) {
+            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+            localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
+            updateHistoryUI();
+        }
     }
-
-    // Add message
-    conversations[state.activeConversationId].messages.push({
-        role: role,
-        content: content,
-        timestamp: new Date().toISOString()
-    });
-
-    // Update timestamp
-    conversations[state.activeConversationId].updatedAt = new Date().toISOString();
-
-    // If this is the first user message and we're using default name, generate a better name
-    if (role === 'user' && state.activeConversationName === 'New Conversation') {
-        const newName = generateConversationName(content);
-        conversations[state.activeConversationId].name = newName;
-        state.activeConversationName = newName;
-        elements.sectionTitle.textContent = newName;
-    }
-
-    // Save to localStorage
-    localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(conversations));
-
-    // Update state.chatHistory for UI
-    let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
-    if (!conversation) {
-        conversation = {
-            id: state.activeConversationId,
-            name: state.activeConversationName,
-            timestamp: Date.now(),
-            messages: []
-        };
-        state.chatHistory.unshift(conversation);
-    }
-
-    // Update the conversation in state
-    conversation.messages.push({
-        role: role,
-        content: content,
-        timestamp: Date.now()
-    });
-    conversation.timestamp = Date.now();
-
-    // Update history UI
-    updateHistoryUI();
-}
 
     /**
      * Generate a conversation name from the first user message
@@ -2468,115 +2359,115 @@ function saveMessageToConversation(role, content) {
     }
 
 
-    const youtubeFeatures = {
-        /**
-         * Search YouTube videos
-         */
-        async searchVideos(query, maxResults = 5) {
-            try {
-                const response = await fetch('/api/youtube', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'search',
-                        query: query,
-                        maxResults: maxResults
-                    })
-                });
-
-                const data = await response.json();
-                return data.items || [];
-            } catch (error) {
-                console.error('YouTube search error:', error);
-                return [];
-            }
-        },
-
-        /**
-         * Get video details
-         */
-        async getVideoDetails(videoId) {
-            try {
-                const response = await fetch('/api/youtube', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'videoDetails',
-                        videoId: videoId
-                    })
-                });
-
-                const data = await response.json();
-                return data.items ? data.items[0] : null;
-            } catch (error) {
-                console.error('YouTube video details error:', error);
-                return null;
-            }
-        },
-
-        /**
-         * Extract video ID from YouTube URL
-         */
-        extractVideoId(url) {
-            const patterns = [
-                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&\n?#]+)/,
-                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^&\n?#]+)/,
-                /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^&\n?#]+)/,
-            ];
-
-            for (const pattern of patterns) {
-                const match = url.match(pattern);
-                if (match) return match[1];
-            }
-            return null;
-        },
-
-        /**
-         * Create embedded video player
-         */
-        createVideoPlayer(videoId, options = {}) {
-            const defaultOptions = {
-                width: '100%',
-                height: '315',
-                autoplay: false,
-                mute: false,
-                controls: true,
-                modestbranding: true,
-                rel: false,
-                showinfo: false
-            };
-
-            const playerOptions = { ...defaultOptions, ...options };
-
-            // Build YouTube embed URL with parameters
-            let embedUrl = `https://www.youtube.com/embed/${videoId}?`;
-
-            const params = new URLSearchParams({
-                autoplay: playerOptions.autoplay ? 1 : 0,
-                mute: playerOptions.mute ? 1 : 0,
-                controls: playerOptions.controls ? 1 : 0,
-                modestbranding: playerOptions.modestbranding ? 1 : 0,
-                rel: playerOptions.rel ? 1 : 0,
-                showinfo: playerOptions.showinfo ? 1 : 0,
-                origin: window.location.origin,
-                enablejsapi: 1,
-                fs: 1,
-                iv_load_policy: 3, // Minimize annotations
-                disablekb: 0,
-                playsinline: 1,
-                // Privacy-enhanced mode
-                host: 'https://www.youtube-nocookie.com'
+const youtubeFeatures = {
+    /**
+     * Search YouTube videos
+     */
+    async searchVideos(query, maxResults = 5) {
+        try {
+            const response = await fetch('/api/youtube', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'search',
+                    query: query,
+                    maxResults: maxResults
+                })
             });
 
-            embedUrl += params.toString();
-            embedUrl = embedUrl.replace('youtube.com', 'youtube-nocookie.com');
+            const data = await response.json();
+            return data.items || [];
+        } catch (error) {
+            console.error('YouTube search error:', error);
+            return [];
+        }
+    },
 
-            // Adjust height for mobile
-            const isMobile = window.innerWidth <= 768;
-            const height = isMobile ? '250' : playerOptions.height;
-            const width = isMobile ? '100%' : playerOptions.width;
+    /**
+     * Get video details
+     */
+    async getVideoDetails(videoId) {
+        try {
+            const response = await fetch('/api/youtube', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'videoDetails',
+                    videoId: videoId
+                })
+            });
 
-            return `
+            const data = await response.json();
+            return data.items ? data.items[0] : null;
+        } catch (error) {
+            console.error('YouTube video details error:', error);
+            return null;
+        }
+    },
+
+    /**
+     * Extract video ID from YouTube URL
+     */
+    extractVideoId(url) {
+        const patterns = [
+            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&\n?#]+)/,
+            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^&\n?#]+)/,
+            /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^&\n?#]+)/,
+        ];
+
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) return match[1];
+        }
+        return null;
+    },
+
+    /**
+     * Create embedded video player
+     */
+    createVideoPlayer(videoId, options = {}) {
+        const defaultOptions = {
+            width: '100%',
+            height: '315',
+            autoplay: false,
+            mute: false,
+            controls: true,
+            modestbranding: true,
+            rel: false,
+            showinfo: false
+        };
+
+        const playerOptions = { ...defaultOptions, ...options };
+
+        // Build YouTube embed URL with parameters
+        let embedUrl = `https://www.youtube.com/embed/${videoId}?`;
+
+        const params = new URLSearchParams({
+            autoplay: playerOptions.autoplay ? 1 : 0,
+            mute: playerOptions.mute ? 1 : 0,
+            controls: playerOptions.controls ? 1 : 0,
+            modestbranding: playerOptions.modestbranding ? 1 : 0,
+            rel: playerOptions.rel ? 1 : 0,
+            showinfo: playerOptions.showinfo ? 1 : 0,
+            origin: window.location.origin,
+             enablejsapi: 1,
+        fs: 1,
+        iv_load_policy: 3, // Minimize annotations
+        disablekb: 0,
+        playsinline: 1,
+        // Privacy-enhanced mode
+        host: 'https://www.youtube-nocookie.com'
+        });
+
+        embedUrl += params.toString();
+        embedUrl = embedUrl.replace('youtube.com', 'youtube-nocookie.com');
+
+        // Adjust height for mobile
+        const isMobile = window.innerWidth <= 768;
+        const height = isMobile ? '250' : playerOptions.height;
+        const width = isMobile ? '100%' : playerOptions.width;
+
+        return `
             <div class="youtube-player-container" style="position: relative; width: ${width}; margin: 1rem 0;">
                 <iframe 
                     src="${embedUrl}"
@@ -2598,189 +2489,189 @@ function saveMessageToConversation(role, content) {
                 </div>
             </div>
         `;
-        },
+    },
 
-        /**
-         * Format video results with player buttons
-         */
-        formatVideoResultsWithPlayer(videos, includePlayer = false) {
-            if (!videos.length) return 'No videos found.';
+    /**
+     * Format video results with player buttons
+     */
+    formatVideoResultsWithPlayer(videos, includePlayer = false) {
+        if (!videos.length) return 'No videos found.';
 
-            const isMobile = window.innerWidth <= 768;
-            let result = '';
+        const isMobile = window.innerWidth <= 768;
+        let result = '';
 
-            if (includePlayer && videos.length > 0) {
-                // Add embedded player for first video
-                const firstVideo = videos[0];
-                const videoId = firstVideo.id.videoId;
-
-                result += `## 🎥 Now Playing\n\n`;
-                result += `### ${firstVideo.snippet.title}\n`;
-                result += `**Channel:** ${firstVideo.snippet.channelTitle}\n\n`;
-
-                // Add the video player placeholder
-                result += `[PLAYER:${videoId}]\n\n`;
-            }
-
-            result += `## 📝 Search Results (${videos.length} videos)\n\n`;
-
-            videos.forEach((video, index) => {
-                const title = video.snippet.title;
-                const channel = video.snippet.channelTitle;
-                const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
-                const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
-                const videoId = video.id.videoId;
-                const thumbnail = video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url;
-
-                result += `**${index + 1}. ${title}**\n`;
-                result += `**Channel:** ${channel}\n`;
-                result += `**Description:** ${description}\n`;
-                result += `**URL:** [Watch on YouTube](${videoUrl})\n`;
-
-                // Add thumbnail if available and not mobile
-                if (thumbnail && !isMobile) {
-                    result += `![Thumbnail](${thumbnail})\n`;
-                }
-
-                // Add play button placeholder
-                result += `[PLAY_BUTTON:${videoId}]\n\n`;
-            });
-
-            return result;
-        },
-
-        /**
-         * Format video results for display (basic version)
-         */
-        formatVideoResults(videos) {
-            if (!videos.length) return 'No videos found.';
-
-            const isMobile = window.innerWidth <= 768;
-            let result = '## 🎥 YouTube Search Results\n\n';
-
-            videos.forEach((video, index) => {
-                const title = video.snippet.title;
-                const channel = video.snippet.channelTitle;
-                const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
-                const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
-                const thumbnail = video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url;
-
-                result += `### ${index + 1}. [${title}](${videoUrl})\n`;
-                result += `**Channel:** ${channel}\n`;
-                result += `**Description:** ${description}\n`;
-
-                // Only show thumbnails on larger screens to save mobile data
-                if (thumbnail && !isMobile) {
-                    result += `![Thumbnail](${thumbnail})\n`;
-                }
-                result += '\n';
-            });
-
-            return result;
-        },
-
-        /**
-         * Format video details for analysis
-         */
-        formatVideoDetails(video) {
-            if (!video) return 'Video details not available.';
-
-            const snippet = video.snippet;
-            const statistics = video.statistics;
-            const contentDetails = video.contentDetails;
-            const isMobile = window.innerWidth <= 768;
-
-            let result = `## 📊 Video Analysis\n\n`;
-            result += `**Title:** ${snippet.title}\n`;
-            result += `**Channel:** ${snippet.channelTitle}\n`;
-            result += `**Published:** ${new Date(snippet.publishedAt).toLocaleDateString()}\n`;
-            result += `**Duration:** ${this.formatDuration(contentDetails.duration)}\n`;
-            result += `**Views:** ${parseInt(statistics.viewCount).toLocaleString()}\n`;
-            result += `**Likes:** ${parseInt(statistics.likeCount || 0).toLocaleString()}\n`;
-            result += `**Comments:** ${parseInt(statistics.commentCount || 0).toLocaleString()}\n\n`;
-
-            // Truncate description for mobile
-            const descriptionLength = isMobile ? 300 : 500;
-            result += `**Description:**\n${snippet.description.substring(0, descriptionLength)}${snippet.description.length > descriptionLength ? '...' : ''}\n\n`;
-
-            // Show fewer tags on mobile
-            if (snippet.tags) {
-                const tagsToShow = isMobile ? snippet.tags.slice(0, 5) : snippet.tags;
-                result += `**Tags:** ${tagsToShow.join(', ')}${snippet.tags.length > tagsToShow.length ? '...' : ''}\n`;
-            } else {
-                result += `**Tags:** No tags\n`;
-            }
-
-            return result;
-        },
-
-        /**
-         * Format ISO 8601 duration to readable format
-         */
-        formatDuration(duration) {
-            if (!duration) return 'Unknown';
-
-            const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-            if (!match) return 'Unknown';
-
-            const hours = (match[1] || '').replace('H', '');
-            const minutes = (match[2] || '').replace('M', '');
-            const seconds = (match[3] || '').replace('S', '');
-
-            const parts = [];
-            if (hours) parts.push(hours);
-            if (minutes) parts.push(minutes.padStart(2, '0'));
-            if (seconds) parts.push(seconds.padStart(2, '0'));
-
-            return parts.join(':') || '0:00';
-        },
-
-        /**
-         * Play video inline (replace buttons with player)
-         */
-        playVideoInline(videoId, buttonElement) {
-            const container = buttonElement.closest('.youtube-play-button-container');
-            if (container) {
-                // Replace the button container with the video player
-                container.innerHTML = this.createVideoPlayer(videoId, { autoplay: true });
-
-                // Scroll the video into view
-                container.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        },
-
-        /**
-         * Open video in YouTube
-         */
-        openInYouTube(videoId) {
-            const url = `https://www.youtube.com/watch?v=${videoId}`;
-            window.open(url, '_blank');
-        },
-
-        /**
-         * Copy video URL to clipboard
-         */
-        async copyVideoUrl(videoId) {
-            const url = `https://www.youtube.com/watch?v=${videoId}`;
-            try {
-                await navigator.clipboard.writeText(url);
-                showNotification('Video URL copied to clipboard', 'success');
-            } catch (error) {
-                console.error('Failed to copy URL:', error);
-                showNotification('Failed to copy URL', 'error');
-            }
-        },
-
-        /**
-         * Create a playlist player for multiple videos
-         */
-        createPlaylistPlayer(videos) {
-            if (!videos || videos.length === 0) return '';
-
+        if (includePlayer && videos.length > 0) {
+            // Add embedded player for first video
             const firstVideo = videos[0];
-            const videoId = firstVideo.id.videoId || firstVideo.id;
+            const videoId = firstVideo.id.videoId;
+            
+            result += `## 🎥 Now Playing\n\n`;
+            result += `### ${firstVideo.snippet.title}\n`;
+            result += `**Channel:** ${firstVideo.snippet.channelTitle}\n\n`;
+            
+            // Add the video player placeholder
+            result += `[PLAYER:${videoId}]\n\n`;
+        }
 
-            let playlistHtml = `
+        result += `## 📝 Search Results (${videos.length} videos)\n\n`;
+
+        videos.forEach((video, index) => {
+            const title = video.snippet.title;
+            const channel = video.snippet.channelTitle;
+            const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
+            const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+            const videoId = video.id.videoId;
+            const thumbnail = video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url;
+
+            result += `**${index + 1}. ${title}**\n`;
+            result += `**Channel:** ${channel}\n`;
+            result += `**Description:** ${description}\n`;
+            result += `**URL:** [Watch on YouTube](${videoUrl})\n`;
+            
+            // Add thumbnail if available and not mobile
+            if (thumbnail && !isMobile) {
+                result += `![Thumbnail](${thumbnail})\n`;
+            }
+            
+            // Add play button placeholder
+            result += `[PLAY_BUTTON:${videoId}]\n\n`;
+        });
+
+        return result;
+    },
+
+    /**
+     * Format video results for display (basic version)
+     */
+    formatVideoResults(videos) {
+        if (!videos.length) return 'No videos found.';
+
+        const isMobile = window.innerWidth <= 768;
+        let result = '## 🎥 YouTube Search Results\n\n';
+
+        videos.forEach((video, index) => {
+            const title = video.snippet.title;
+            const channel = video.snippet.channelTitle;
+            const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
+            const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+            const thumbnail = video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url;
+
+            result += `### ${index + 1}. [${title}](${videoUrl})\n`;
+            result += `**Channel:** ${channel}\n`;
+            result += `**Description:** ${description}\n`;
+
+            // Only show thumbnails on larger screens to save mobile data
+            if (thumbnail && !isMobile) {
+                result += `![Thumbnail](${thumbnail})\n`;
+            }
+            result += '\n';
+        });
+
+        return result;
+    },
+
+    /**
+     * Format video details for analysis
+     */
+    formatVideoDetails(video) {
+        if (!video) return 'Video details not available.';
+
+        const snippet = video.snippet;
+        const statistics = video.statistics;
+        const contentDetails = video.contentDetails;
+        const isMobile = window.innerWidth <= 768;
+
+        let result = `## 📊 Video Analysis\n\n`;
+        result += `**Title:** ${snippet.title}\n`;
+        result += `**Channel:** ${snippet.channelTitle}\n`;
+        result += `**Published:** ${new Date(snippet.publishedAt).toLocaleDateString()}\n`;
+        result += `**Duration:** ${this.formatDuration(contentDetails.duration)}\n`;
+        result += `**Views:** ${parseInt(statistics.viewCount).toLocaleString()}\n`;
+        result += `**Likes:** ${parseInt(statistics.likeCount || 0).toLocaleString()}\n`;
+        result += `**Comments:** ${parseInt(statistics.commentCount || 0).toLocaleString()}\n\n`;
+
+        // Truncate description for mobile
+        const descriptionLength = isMobile ? 300 : 500;
+        result += `**Description:**\n${snippet.description.substring(0, descriptionLength)}${snippet.description.length > descriptionLength ? '...' : ''}\n\n`;
+
+        // Show fewer tags on mobile
+        if (snippet.tags) {
+            const tagsToShow = isMobile ? snippet.tags.slice(0, 5) : snippet.tags;
+            result += `**Tags:** ${tagsToShow.join(', ')}${snippet.tags.length > tagsToShow.length ? '...' : ''}\n`;
+        } else {
+            result += `**Tags:** No tags\n`;
+        }
+
+        return result;
+    },
+
+    /**
+     * Format ISO 8601 duration to readable format
+     */
+    formatDuration(duration) {
+        if (!duration) return 'Unknown';
+        
+        const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+        if (!match) return 'Unknown';
+        
+        const hours = (match[1] || '').replace('H', '');
+        const minutes = (match[2] || '').replace('M', '');
+        const seconds = (match[3] || '').replace('S', '');
+
+        const parts = [];
+        if (hours) parts.push(hours);
+        if (minutes) parts.push(minutes.padStart(2, '0'));
+        if (seconds) parts.push(seconds.padStart(2, '0'));
+
+        return parts.join(':') || '0:00';
+    },
+
+    /**
+     * Play video inline (replace buttons with player)
+     */
+    playVideoInline(videoId, buttonElement) {
+        const container = buttonElement.closest('.youtube-play-button-container');
+        if (container) {
+            // Replace the button container with the video player
+            container.innerHTML = this.createVideoPlayer(videoId, { autoplay: true });
+            
+            // Scroll the video into view
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    },
+
+    /**
+     * Open video in YouTube
+     */
+    openInYouTube(videoId) {
+        const url = `https://www.youtube.com/watch?v=${videoId}`;
+        window.open(url, '_blank');
+    },
+
+    /**
+     * Copy video URL to clipboard
+     */
+    async copyVideoUrl(videoId) {
+        const url = `https://www.youtube.com/watch?v=${videoId}`;
+        try {
+            await navigator.clipboard.writeText(url);
+            showNotification('Video URL copied to clipboard', 'success');
+        } catch (error) {
+            console.error('Failed to copy URL:', error);
+            showNotification('Failed to copy URL', 'error');
+        }
+    },
+
+    /**
+     * Create a playlist player for multiple videos
+     */
+    createPlaylistPlayer(videos) {
+        if (!videos || videos.length === 0) return '';
+
+        const firstVideo = videos[0];
+        const videoId = firstVideo.id.videoId || firstVideo.id;
+
+        let playlistHtml = `
             <div class="youtube-playlist-container">
                 <div class="current-player">
                     ${this.createVideoPlayer(videoId, { height: '400' })}
@@ -2790,13 +2681,13 @@ function saveMessageToConversation(role, content) {
                     <div class="playlist-items">
         `;
 
-            videos.forEach((video, index) => {
-                const id = video.id.videoId || video.id;
-                const title = video.snippet.title;
-                const thumbnail = video.snippet.thumbnails.default?.url;
-                const duration = video.contentDetails?.duration || 'N/A';
+        videos.forEach((video, index) => {
+            const id = video.id.videoId || video.id;
+            const title = video.snippet.title;
+            const thumbnail = video.snippet.thumbnails.default?.url;
+            const duration = video.contentDetails?.duration || 'N/A';
 
-                playlistHtml += `
+            playlistHtml += `
                 <div class="playlist-item ${index === 0 ? 'active' : ''}" 
                      data-video-id="${id}" 
                      onclick="youtubeFeatures.switchVideo('${id}', this)">
@@ -2807,65 +2698,65 @@ function saveMessageToConversation(role, content) {
                     </div>
                 </div>
             `;
-            });
+        });
 
-            playlistHtml += `
+        playlistHtml += `
                     </div>
                 </div>
             </div>
         `;
 
-            return playlistHtml;
-        },
+        return playlistHtml;
+    },
 
-        /**
-         * Switch video in playlist player
-         */
-        switchVideo(videoId, clickedItem) {
-            // Update active playlist item
-            document.querySelectorAll('.playlist-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            clickedItem.classList.add('active');
-
-            // Update the iframe source
-            const iframe = document.querySelector('.current-player iframe');
-            if (iframe) {
-                const newSrc = iframe.src.replace(/embed\/[^?]+/, `embed/${videoId}`);
-                iframe.src = newSrc;
-            }
-
-            // Scroll the clicked item into view
-            clickedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-    };
-
-    window.playYouTubeVideo = function (videoId, buttonElement) {
-        console.log('Playing video:', videoId);
-        if (youtubeFeatures && youtubeFeatures.playVideoInline) {
-            youtubeFeatures.playVideoInline(videoId, buttonElement);
-        } else {
-            // Fallback if youtubeFeatures not ready
-            const container = buttonElement.closest('.youtube-play-button-container');
-            if (container) {
-                container.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" width="100%" height="315" frameborder="0" allowfullscreen></iframe>`;
-            }
-        }
-    };
-
-    window.openYouTubeVideo = function (videoId) {
-        const url = `https://www.youtube.com/watch?v=${videoId}`;
-        window.open(url, '_blank');
-    };
-
-    window.copyYouTubeUrl = function (videoId) {
-        const url = `https://www.youtube.com/watch?v=${videoId}`;
-        navigator.clipboard.writeText(url).then(() => {
-            showNotification('Video URL copied to clipboard', 'success');
-        }).catch(() => {
-            showNotification('Failed to copy URL', 'error');
+    /**
+     * Switch video in playlist player
+     */
+    switchVideo(videoId, clickedItem) {
+        // Update active playlist item
+        document.querySelectorAll('.playlist-item').forEach(item => {
+            item.classList.remove('active');
         });
-    };
+        clickedItem.classList.add('active');
+
+        // Update the iframe source
+        const iframe = document.querySelector('.current-player iframe');
+        if (iframe) {
+            const newSrc = iframe.src.replace(/embed\/[^?]+/, `embed/${videoId}`);
+            iframe.src = newSrc;
+        }
+
+        // Scroll the clicked item into view
+        clickedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+};
+
+window.playYouTubeVideo = function(videoId, buttonElement) {
+    console.log('Playing video:', videoId);
+    if (youtubeFeatures && youtubeFeatures.playVideoInline) {
+        youtubeFeatures.playVideoInline(videoId, buttonElement);
+    } else {
+        // Fallback if youtubeFeatures not ready
+        const container = buttonElement.closest('.youtube-play-button-container');
+        if (container) {
+            container.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1" width="100%" height="315" frameborder="0" allowfullscreen></iframe>`;
+        }
+    }
+};
+
+window.openYouTubeVideo = function(videoId) {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    window.open(url, '_blank');
+};
+
+window.copyYouTubeUrl = function(videoId) {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    navigator.clipboard.writeText(url).then(() => {
+        showNotification('Video URL copied to clipboard', 'success');
+    }).catch(() => {
+        showNotification('Failed to copy URL', 'error');
+    });
+};
 
     // Enhanced message processing for YouTube content
     function enhancedFetchBotResponse(userMessage) {
@@ -3038,63 +2929,58 @@ function saveMessageToConversation(role, content) {
      * @param {string} content - Message content
      * @param {Array} videos - Array of video objects
      */
+// Replace your addMessageToUIWithPlayers function:
 
-    function addMessageToUIWithPlayers(role, content, videos) {
-        console.log('Adding message with players:', { role, hasVideos: !!videos });
+function addMessageToUIWithPlayers(role, content, videos) {
+    // Process content to replace player and button placeholders
+    let processedContent = content.replace(/\[PLAYER:([^\]]+)\]/g, (match, id) => {
+        return `<div class="youtube-player-embed" data-video-id="${id}"></div>`;
+    });
 
-        // Process content to replace player and button placeholders
-        let processedContent = content.replace(/\[PLAYER:([^\]]+)\]/g, (match, id) => {
-            console.log('Processing player placeholder:', id);
-            return `<div class="youtube-player-embed" data-video-id="${id}"></div>`;
-        });
-
-        // Replace play buttons with proper HTML
-        processedContent = processedContent.replace(/\[PLAY_BUTTON:([^\]]+)\]/g, (match, id) => {
-            console.log('Processing button placeholder:', id);
-
-            const video = videos ? videos.find(v => v.id.videoId === id) : null;
-            const title = video ? video.snippet.title : 'Video';
-            const thumbnail = video ? (video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url) : `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
-
-            return `<div class="youtube-video-item" data-video-id="${id}" style="background: var(--glass-bg); border: var(--glass-border); border-radius: var(--element-radius); padding: 1rem; margin: 1rem 0;">
-            <img src="${thumbnail}" alt="${title}" class="video-thumbnail" style="max-width: 200px; border-radius: 8px; margin: 8px 0; display: block;">
-            <div class="youtube-play-button-container" style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                <button class="youtube-play-btn" onclick="playYouTubeVideo('${id}', this)" data-video-id="${id}" style="background: linear-gradient(135deg, #FF0000, #CC0000); color: white; border: none; padding: 0.6rem 1rem; border-radius: var(--element-radius); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+    // Replace play buttons with proper HTML
+    processedContent = processedContent.replace(/\[PLAY_BUTTON:([^\]]+)\]/g, (match, id) => {
+        const video = videos ? videos.find(v => v.id.videoId === id) : null;
+        const title = video ? video.snippet.title : 'Unknown Video';
+        const thumbnail = video ? (video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url) : '';
+        
+        return `<div class="youtube-video-item" data-video-id="${id}">
+            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" class="video-thumbnail" style="max-width: 200px; border-radius: 8px; margin: 8px 0;">` : ''}
+            <div class="youtube-play-button-container">
+                <button class="youtube-play-btn" onclick="playYouTubeVideo('${id}', this)" data-video-id="${id}">
                     <i class="fas fa-play"></i> Play Video
                 </button>
-                <button class="youtube-action-btn secondary" onclick="openYouTubeVideo('${id}')" style="background: var(--glass-bg); color: var(--text-primary); border: var(--glass-border); padding: 0.6rem 1rem; border-radius: var(--element-radius); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                <button class="youtube-action-btn secondary" onclick="openYouTubeVideo('${id}')">
                     <i class="fab fa-youtube"></i> Open in YouTube
                 </button>
             </div>
         </div>`;
-        });
+    });
 
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${role}`;
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
 
-        // Configure marked.js with proper settings
-        marked.setOptions({
-            renderer: new marked.Renderer(),
-            highlight: function (code, lang) {
-                return code;
-            },
-            langPrefix: 'language-',
-            pedantic: false,
-            gfm: true,
-            breaks: true,
-            sanitize: false, // CRITICAL: Must be false to allow HTML
-            smartypants: true,
-            xhtml: false
-        });
+    marked.setOptions({
+        renderer: new marked.Renderer(),
+        highlight: function (code, lang) {
+            return code;
+        },
+        langPrefix: 'language-',
+        pedantic: false,
+        gfm: true,
+        breaks: true,
+        sanitize: false, // Important: don't sanitize so HTML can render
+        smartypants: true,
+        xhtml: false
+    });
 
-        let finalContent;
-        if (role === 'assistant') {
-            finalContent = marked.parse(processedContent);
-        } else {
-            finalContent = processedContent.replace(/\n/g, '<br>');
-        }
+    let finalContent;
+    if (role === 'assistant') {
+        finalContent = marked.parse(processedContent);
+    } else {
+        finalContent = processedContent.replace(/\n/g, '<br>');
+    }
 
-        messageDiv.innerHTML = `
+    messageDiv.innerHTML = `
         <div class="message-content">
             <div class="message-bubble ${role === 'assistant' ? 'markdown-content' : ''}">
                 ${finalContent}
@@ -3117,41 +3003,32 @@ function saveMessageToConversation(role, content) {
         </div>
     `;
 
-        // Mobile responsive handling
-        if (window.innerWidth <= 768) {
-            messageDiv.style.maxWidth = '95%';
-
-            const thumbnails = messageDiv.querySelectorAll('.video-thumbnail');
-            thumbnails.forEach(thumb => {
-                thumb.style.maxWidth = '100%';
-                thumb.style.height = 'auto';
-            });
-
-            const buttonContainers = messageDiv.querySelectorAll('.youtube-play-button-container');
-            buttonContainers.forEach(container => {
-                container.style.flexDirection = 'column';
-                container.style.gap = '0.3rem';
-            });
-        }
-
-        // Add to DOM FIRST
-        elements.chatMessages.appendChild(messageDiv);
-
-        // THEN process any embedded players
-        const playerEmbeds = messageDiv.querySelectorAll('.youtube-player-embed');
-        playerEmbeds.forEach(embed => {
-            const videoId = embed.dataset.videoId;
-            if (videoId && youtubeFeatures && youtubeFeatures.createVideoPlayer) {
-                console.log('Creating player for video:', videoId);
-                embed.innerHTML = youtubeFeatures.createVideoPlayer(videoId);
-            }
+    // Mobile responsive handling
+    if (window.innerWidth <= 768) {
+        messageDiv.style.maxWidth = '95%';
+        
+        const thumbnails = messageDiv.querySelectorAll('.video-thumbnail');
+        thumbnails.forEach(thumb => {
+            thumb.style.maxWidth = '100%';
+            thumb.style.height = 'auto';
         });
-
-        setupMessageActions(messageDiv, content, role);
-        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-
-        console.log('Message added successfully');
     }
+
+    // Add to DOM FIRST
+    elements.chatMessages.appendChild(messageDiv);
+    
+    // THEN process any embedded players
+    const playerEmbeds = messageDiv.querySelectorAll('.youtube-player-embed');
+    playerEmbeds.forEach(embed => {
+        const videoId = embed.dataset.videoId;
+        if (videoId) {
+            embed.innerHTML = youtubeFeatures.createVideoPlayer(videoId);
+        }
+    });
+
+    setupMessageActions(messageDiv, content, role);
+    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+}
 
 
     // Add this function to youtubeFeatures object
