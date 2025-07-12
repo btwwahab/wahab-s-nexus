@@ -2352,7 +2352,338 @@ function createNewConversation() {
             }, 350);
         });
 
+        setupYouTubeEventListeners();
+
     }
+
+// YouTube Integration Functions
+const youtubeFeatures = {
+    
+    /**
+     * Search YouTube videos
+     */
+    async searchVideos(query, maxResults = 5) {
+        try {
+            const response = await fetch('/api/youtube', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'search',
+                    query: query,
+                    maxResults: maxResults
+                })
+            });
+            
+            const data = await response.json();
+            return data.items || [];
+        } catch (error) {
+            console.error('YouTube search error:', error);
+            return [];
+        }
+    },
+
+    /**
+     * Get video details
+     */
+    async getVideoDetails(videoId) {
+        try {
+            const response = await fetch('/api/youtube', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'videoDetails',
+                    videoId: videoId
+                })
+            });
+            
+            const data = await response.json();
+            return data.items ? data.items[0] : null;
+        } catch (error) {
+            console.error('YouTube video details error:', error);
+            return null;
+        }
+    },
+
+    /**
+     * Extract video ID from YouTube URL
+     */
+    extractVideoId(url) {
+        const patterns = [
+            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&\n?#]+)/,
+            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^&\n?#]+)/,
+            /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^&\n?#]+)/,
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) return match[1];
+        }
+        return null;
+    },
+
+    /**
+     * Format video results for display
+     */
+    formatVideoResults(videos) {
+        if (!videos.length) return 'No videos found.';
+        
+        let result = '## 🎥 YouTube Search Results\n\n';
+        
+        videos.forEach((video, index) => {
+            const title = video.snippet.title;
+            const channel = video.snippet.channelTitle;
+            const description = video.snippet.description.substring(0, 100) + '...';
+            const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+            const thumbnail = video.snippet.thumbnails.medium.url;
+            
+            result += `### ${index + 1}. [${title}](${videoUrl})\n`;
+            result += `**Channel:** ${channel}\n`;
+            result += `**Description:** ${description}\n`;
+            result += `![Thumbnail](${thumbnail})\n\n`;
+        });
+        
+        return result;
+    },
+
+    /**
+     * Format video details for analysis
+     */
+    formatVideoDetails(video) {
+        if (!video) return 'Video details not available.';
+        
+        const snippet = video.snippet;
+        const statistics = video.statistics;
+        const contentDetails = video.contentDetails;
+        
+        let result = `## 📊 Video Analysis\n\n`;
+        result += `**Title:** ${snippet.title}\n`;
+        result += `**Channel:** ${snippet.channelTitle}\n`;
+        result += `**Published:** ${new Date(snippet.publishedAt).toLocaleDateString()}\n`;
+        result += `**Duration:** ${this.formatDuration(contentDetails.duration)}\n`;
+        result += `**Views:** ${parseInt(statistics.viewCount).toLocaleString()}\n`;
+        result += `**Likes:** ${parseInt(statistics.likeCount || 0).toLocaleString()}\n`;
+        result += `**Comments:** ${parseInt(statistics.commentCount || 0).toLocaleString()}\n\n`;
+        result += `**Description:**\n${snippet.description.substring(0, 500)}${snippet.description.length > 500 ? '...' : ''}\n\n`;
+        result += `**Tags:** ${snippet.tags ? snippet.tags.join(', ') : 'No tags'}\n`;
+        
+        return result;
+    },
+
+    /**
+     * Format ISO 8601 duration to readable format
+     */
+    formatDuration(duration) {
+        const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+        const hours = (match[1] || '').replace('H', '');
+        const minutes = (match[2] || '').replace('M', '');
+        const seconds = (match[3] || '').replace('S', '');
+        
+        return [hours, minutes, seconds].filter(Boolean).join(':');
+    }
+};
+
+// Enhanced message processing for YouTube content
+function enhancedFetchBotResponse(userMessage) {
+    // Check if user wants to search YouTube
+    const youtubeSearchPattern = /(?:search|find|look for|show me).+(?:youtube|videos?|on youtube)/i;
+    const youtubeUrlPattern = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)/;
+    
+    if (youtubeSearchPattern.test(userMessage)) {
+        handleYouTubeSearch(userMessage);
+        return;
+    }
+    
+    if (youtubeUrlPattern.test(userMessage)) {
+        handleYouTubeAnalysis(userMessage);
+        return;
+    }
+    
+    // Fall back to regular AI response
+    fetchBotResponse(userMessage);
+}
+
+/**
+ * Handle YouTube search requests
+ */
+async function handleYouTubeSearch(userMessage) {
+    showTypingIndicator();
+    
+    try {
+        // Extract search query
+        const searchQuery = userMessage.replace(/(?:search|find|look for|show me)/i, '').replace(/(?:youtube|videos?|on youtube)/i, '').trim();
+        
+        // Search YouTube
+        const videos = await youtubeFeatures.searchVideos(searchQuery, 5);
+        
+        if (videos.length === 0) {
+            removeTypingIndicator();
+            const noResultsMessage = `I couldn't find any YouTube videos for "${searchQuery}". Try a different search term.`;
+            addMessageToUI('assistant', noResultsMessage);
+            saveMessageToConversation('assistant', noResultsMessage);
+            return;
+        }
+        
+        // Format results
+        const formattedResults = youtubeFeatures.formatVideoResults(videos);
+        
+        // Get AI analysis of the search results
+        const analysisPrompt = `Based on these YouTube search results for "${searchQuery}", provide a helpful summary and recommendations:\n\n${formattedResults}`;
+        
+        // Get AI response about the search results
+        const response = await getAIResponse(analysisPrompt);
+        
+        removeTypingIndicator();
+        
+        const fullResponse = `${formattedResults}\n\n---\n\n${response}`;
+        addMessageToUI('assistant', fullResponse);
+        saveMessageToConversation('assistant', fullResponse);
+        
+    } catch (error) {
+        console.error('YouTube search error:', error);
+        removeTypingIndicator();
+        const errorMessage = 'Sorry, I encountered an error while searching YouTube. Please try again.';
+        addMessageToUI('assistant', errorMessage);
+        saveMessageToConversation('assistant', errorMessage);
+    }
+}
+
+/**
+ * Handle YouTube video analysis
+ */
+async function handleYouTubeAnalysis(userMessage) {
+    showTypingIndicator();
+    
+    try {
+        // Extract video ID from URL
+        const videoId = youtubeFeatures.extractVideoId(userMessage);
+        
+        if (!videoId) {
+            removeTypingIndicator();
+            const errorMessage = 'I couldn\'t extract the video ID from that YouTube URL. Please make sure it\'s a valid YouTube link.';
+            addMessageToUI('assistant', errorMessage);
+            saveMessageToConversation('assistant', errorMessage);
+            return;
+        }
+        
+        // Get video details
+        const videoDetails = await youtubeFeatures.getVideoDetails(videoId);
+        
+        if (!videoDetails) {
+            removeTypingIndicator();
+            const errorMessage = 'I couldn\'t retrieve details for that YouTube video. It might be private or unavailable.';
+            addMessageToUI('assistant', errorMessage);
+            saveMessageToConversation('assistant', errorMessage);
+            return;
+        }
+        
+        // Format video analysis
+        const formattedDetails = youtubeFeatures.formatVideoDetails(videoDetails);
+        
+        // Get AI insights about the video
+        const analysisPrompt = `Analyze this YouTube video and provide insights, key takeaways, and recommendations:\n\n${formattedDetails}`;
+        
+        const aiAnalysis = await getAIResponse(analysisPrompt);
+        
+        removeTypingIndicator();
+        
+        const fullResponse = `${formattedDetails}\n\n---\n\n## 🤖 AI Analysis\n\n${aiAnalysis}`;
+        addMessageToUI('assistant', fullResponse);
+        saveMessageToConversation('assistant', fullResponse);
+        
+    } catch (error) {
+        console.error('YouTube analysis error:', error);
+        removeTypingIndicator();
+        const errorMessage = 'Sorry, I encountered an error while analyzing that YouTube video. Please try again.';
+        addMessageToUI('assistant', errorMessage);
+        saveMessageToConversation('assistant', errorMessage);
+    }
+}
+
+/**
+ * Get AI response for YouTube content
+ */
+async function getAIResponse(prompt) {
+    try {
+        const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: state.settings.model,
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are Aziona, an AI assistant that helps analyze and discuss YouTube content. Provide insightful, helpful analysis and recommendations."
+                    },
+                    {
+                        role: "user",
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 500
+            })
+        });
+        
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error) {
+        console.error('AI response error:', error);
+        return 'I apologize, but I couldn\'t generate an analysis at this time.';
+    }
+}
+
+// Update the existing sendMessage function to use enhanced processing
+function sendMessage() {
+    const message = elements.chatInput.value.trim();
+    if (!message || state.isTyping) return;
+
+    // Add user message to UI
+    addMessageToUI('user', message);
+    elements.chatInput.value = '';
+    resizeInput();
+
+    // Store message in conversation
+    saveMessageToConversation('user', message);
+    chatHistory.push({ role: 'user', content: message });
+
+    // Use enhanced processing that includes YouTube features
+    enhancedFetchBotResponse(message);
+}
+
+// Add event listeners for YouTube buttons
+function setupYouTubeEventListeners() {
+    // YouTube search button
+    document.getElementById('youtube-search').addEventListener('click', async () => {
+        const query = await showPopup({
+            type: 'prompt',
+            title: 'Search YouTube',
+            message: 'Enter your search query:',
+            placeholder: 'e.g., "machine learning tutorials"',
+            confirmText: 'Search'
+        });
+        
+        if (query?.trim()) {
+            elements.chatInput.value = `Search YouTube for ${query.trim()}`;
+            sendMessage();
+        }
+    });
+    
+    // YouTube analyze button
+    document.getElementById('youtube-analyze').addEventListener('click', async () => {
+        const url = await showPopup({
+            type: 'prompt',
+            title: 'Analyze YouTube Video',
+            message: 'Enter the YouTube video URL:',
+            placeholder: 'https://www.youtube.com/watch?v=...',
+            confirmText: 'Analyze'
+        });
+        
+        if (url?.trim()) {
+            elements.chatInput.value = url.trim();
+            sendMessage();
+        }
+    });
+}
 
     // Initialize the application
     init();

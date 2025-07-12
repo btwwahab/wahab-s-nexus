@@ -2587,3 +2587,105 @@ body.light-theme .markdown-content th {
         line-height: 1.4;
     }
 }
+
+/* ...existing code... */
+
+/* YouTube Integration Styles */
+.youtube-result {
+    background: var(--glass-bg);
+    border: var(--glass-border);
+    border-radius: var(--element-radius);
+    padding: 1rem;
+    margin: 1rem 0;
+    backdrop-filter: blur(10px);
+}
+
+.youtube-result h4 {
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+}
+
+.youtube-result .video-stats {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.youtube-result .video-stats span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.youtube-button {
+    background: linear-gradient(135deg, #FF0000, #CC0000);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: var(--element-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.youtube-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
+}
+
+.video-thumbnail {
+    max-width: 100%;
+    border-radius: var(--element-radius);
+    margin: 0.5rem 0;
+}
+
+/* YouTube search suggestions */
+.youtube-suggestions {
+    background: var(--glass-bg);
+    border: var(--glass-border);
+    border-radius: var(--element-radius);
+    padding: 1rem;
+    margin: 1rem 0;
+    backdrop-filter: blur(10px);
+}
+
+.youtube-suggestions h4 {
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+}
+
+.youtube-suggestions .suggestion-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.youtube-suggestions .suggestion-item {
+    background: var(--bg-element);
+    padding: 0.75rem;
+    border-radius: var(--element-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid var(--border-color);
+}
+
+.youtube-suggestions .suggestion-item:hover {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+}
+
+/* Mobile responsiveness for YouTube features */
+@media (max-width: 768px) {
+    .youtube-result .video-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .youtube-suggestions .suggestion-grid {
+        grid-template-columns: 1fr;
+    }
+}
