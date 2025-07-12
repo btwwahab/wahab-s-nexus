@@ -485,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // Create message content
-messageDiv.innerHTML = `
+        messageDiv.innerHTML = `
     <div class="message-content">
         <div class="message-bubble ${role === 'assistant' ? 'markdown-content' : ''}">
             ${processedContent}
@@ -508,28 +508,28 @@ messageDiv.innerHTML = `
     </div>
 `;
 
-// Add this new code to ensure mobile responsiveness
-if (window.innerWidth <= 768) {
-    // Force reflow for mobile
-    messageDiv.style.maxWidth = '95%';
-    
-    // Ensure all pre elements in the message are scrollable
-    const preElements = messageDiv.querySelectorAll('pre');
-    preElements.forEach(pre => {
-        pre.style.overflowX = 'auto';
-        pre.style.maxWidth = '100%';
-    });
-    
-    // Ensure tables are scrollable
-    const tables = messageDiv.querySelectorAll('table');
-    tables.forEach(table => {
-        const wrapper = document.createElement('div');
-        wrapper.style.overflowX = 'auto';
-        wrapper.style.maxWidth = '100%';
-        table.parentNode.insertBefore(wrapper, table);
-        wrapper.appendChild(table);
-    });
-}
+        // Add this new code to ensure mobile responsiveness
+        if (window.innerWidth <= 768) {
+            // Force reflow for mobile
+            messageDiv.style.maxWidth = '95%';
+
+            // Ensure all pre elements in the message are scrollable
+            const preElements = messageDiv.querySelectorAll('pre');
+            preElements.forEach(pre => {
+                pre.style.overflowX = 'auto';
+                pre.style.maxWidth = '100%';
+            });
+
+            // Ensure tables are scrollable
+            const tables = messageDiv.querySelectorAll('table');
+            tables.forEach(table => {
+                const wrapper = document.createElement('div');
+                wrapper.style.overflowX = 'auto';
+                wrapper.style.maxWidth = '100%';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+            });
+        }
 
         // Add event listeners for message actions
         setupMessageActions(messageDiv, content, role);
@@ -1035,52 +1035,52 @@ if (window.innerWidth <= 768) {
         fetchBotResponse(message);
     }
 
-/**
- * Save message to current conversation
- * @param {string} role - Role of message sender
- * @param {string} content - Message content
- */
-function saveMessageToConversation(role, content) {
-    // Find current conversation in history
-    let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
-    
-    // If conversation doesn't exist (should never happen), create it
-    if (!conversation) {
-        console.warn('Conversation not found, creating new one');
-        conversation = {
-            id: state.activeConversationId,
-            name: state.activeConversationName,
-            timestamp: Date.now(),
-            messages: []
-        };
-        state.chatHistory.unshift(conversation);
+    /**
+     * Save message to current conversation
+     * @param {string} role - Role of message sender
+     * @param {string} content - Message content
+     */
+    function saveMessageToConversation(role, content) {
+        // Find current conversation in history
+        let conversation = state.chatHistory.find(c => c.id === state.activeConversationId);
+
+        // If conversation doesn't exist (should never happen), create it
+        if (!conversation) {
+            console.warn('Conversation not found, creating new one');
+            conversation = {
+                id: state.activeConversationId,
+                name: state.activeConversationName,
+                timestamp: Date.now(),
+                messages: []
+            };
+            state.chatHistory.unshift(conversation);
+        }
+
+        // Special handling for first user message
+        if (role === 'user' && state.isNewConversation) {
+            state.isNewConversation = false;
+
+            // Update active conversation in UI, but don't create a new one
+            elements.sectionTitle.textContent = state.activeConversationName;
+        }
+
+        // Add message to conversation
+        conversation.messages.push({
+            role,
+            content,
+            timestamp: Date.now()
+        });
+
+        // Update timestamp
+        conversation.timestamp = Date.now();
+
+        // Save to localStorage if enabled
+        if (state.settings.saveHistory) {
+            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+            localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
+            updateHistoryUI();
+        }
     }
-    
-    // Special handling for first user message
-    if (role === 'user' && state.isNewConversation) {
-        state.isNewConversation = false;
-        
-        // Update active conversation in UI, but don't create a new one
-        elements.sectionTitle.textContent = state.activeConversationName;
-    }
-    
-    // Add message to conversation
-    conversation.messages.push({
-        role,
-        content,
-        timestamp: Date.now()
-    });
-    
-    // Update timestamp
-    conversation.timestamp = Date.now();
-    
-    // Save to localStorage if enabled
-    if (state.settings.saveHistory) {
-        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-        localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
-        updateHistoryUI();
-    }
-}
 
     /**
      * Generate a conversation name from the first user message
@@ -1234,13 +1234,13 @@ function saveMessageToConversation(role, content) {
                     updateSuggestionChips();
 
                     // ALWAYS generate an AI name after the first exchange, not just sometimes
-const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
-// The condition was the issue - make it ALWAYS generate a name when it's a new conversation
-if (currentConvo && (currentConvo.messages.length <= 2 || state.isNewConversation === false)) {
-    elements.sectionTitle.textContent = "Generating name...";
-    console.log("Generating AI name for conversation:", state.activeConversationId);
-    generateAIConversationName(userMessage, responseContent);
-}
+                    const currentConvo = state.chatHistory.find(c => c.id === state.activeConversationId);
+                    // The condition was the issue - make it ALWAYS generate a name when it's a new conversation
+                    if (currentConvo && (currentConvo.messages.length <= 2 || state.isNewConversation === false)) {
+                        elements.sectionTitle.textContent = "Generating name...";
+                        console.log("Generating AI name for conversation:", state.activeConversationId);
+                        generateAIConversationName(userMessage, responseContent);
+                    }
                 } else {
                     throw new Error('Invalid response format from API');
                 }
@@ -1265,75 +1265,75 @@ if (currentConvo && (currentConvo.messages.length <= 2 || state.isNewConversatio
             });
     }
 
-/**
- * Use AI to generate a better conversation name
- */
-function generateAIConversationName(userMsg, aiReply) {
-    // Add a short delay to ensure the API isn't overloaded
-    setTimeout(() => {
-        // Define these variables - they were missing!
-        const timestamp = new Date().toLocaleString();
-        const convoId = state.activeConversationId.substring(0, 8);
-        
-        // Use existing API call structure
-        fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: state.settings.model,
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are a helpful assistant that generates creative, unique conversation titles. Create a specific title that captures the main topic, using between 2-5 words. Be descriptive and varied in your naming approach. Each title should feel distinct even for similar topics."
-                    },
-                    {
-                        role: "user",
-                        content: `Based on this conversation started on ${timestamp} (ID: ${convoId}), generate a concise, specific, and UNIQUE title (max 5 words):\nUser: ${userMsg}\nAI: ${aiReply.substring(0, 100)}\n\nImportant: Ensure this title is different from typical titles you might generate for similar conversations.`
-                    }
-                ],
-                temperature: 0.9, // Higher temperature for more creativity
-                max_tokens: 20,
-                top_p: 1,
-                frequency_penalty: 0.5 // Add some penalty for repetitive tokens
+    /**
+     * Use AI to generate a better conversation name
+     */
+    function generateAIConversationName(userMsg, aiReply) {
+        // Add a short delay to ensure the API isn't overloaded
+        setTimeout(() => {
+            // Define these variables - they were missing!
+            const timestamp = new Date().toLocaleString();
+            const convoId = state.activeConversationId.substring(0, 8);
+
+            // Use existing API call structure
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: state.settings.model,
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a helpful assistant that generates creative, unique conversation titles. Create a specific title that captures the main topic, using between 2-5 words. Be descriptive and varied in your naming approach. Each title should feel distinct even for similar topics."
+                        },
+                        {
+                            role: "user",
+                            content: `Based on this conversation started on ${timestamp} (ID: ${convoId}), generate a concise, specific, and UNIQUE title (max 5 words):\nUser: ${userMsg}\nAI: ${aiReply.substring(0, 100)}\n\nImportant: Ensure this title is different from typical titles you might generate for similar conversations.`
+                        }
+                    ],
+                    temperature: 0.9, // Higher temperature for more creativity
+                    max_tokens: 20,
+                    top_p: 1,
+                    frequency_penalty: 0.5 // Add some penalty for repetitive tokens
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.choices && data.choices[0] && data.choices[0].message) {
-                let title = data.choices[0].message.content.trim();
-                // Remove quotes if present
-                title = title.replace(/^["'](.*)["']$/, '$1');
-                
-                // Add small random suffix if the title is very short (< 10 chars)
-                if (title.length < 10) {
-                    const randomSuffix = Math.floor(Math.random() * 1000);
-                    title = `${title} ${randomSuffix}`;
-                }
-                
-                // Update conversation name
-                state.activeConversationName = title;
-                elements.sectionTitle.textContent = title;
-                
-                // Update in chat history
-                const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
-                if (convo) {
-                    convo.name = title;
-                    
-                    // Save to localStorage if enabled
-                    if (state.settings.saveHistory) {
-                        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-                        localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
-                        updateHistoryUI();
+                .then(response => response.json())
+                .then(data => {
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        let title = data.choices[0].message.content.trim();
+                        // Remove quotes if present
+                        title = title.replace(/^["'](.*)["']$/, '$1');
+
+                        // Add small random suffix if the title is very short (< 10 chars)
+                        if (title.length < 10) {
+                            const randomSuffix = Math.floor(Math.random() * 1000);
+                            title = `${title} ${randomSuffix}`;
+                        }
+
+                        // Update conversation name
+                        state.activeConversationName = title;
+                        elements.sectionTitle.textContent = title;
+
+                        // Update in chat history
+                        const convo = state.chatHistory.find(c => c.id === state.activeConversationId);
+                        if (convo) {
+                            convo.name = title;
+
+                            // Save to localStorage if enabled
+                            if (state.settings.saveHistory) {
+                                localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+                                localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
+                                updateHistoryUI();
+                            }
+                        }
                     }
-                }
-            }
-        })
-        .catch(err => {
-            console.warn('Failed to generate AI title:', err);
-            showNotification('Could not generate custom title', 'warning');
-        });
-    }, 500); // Short delay before generating name
-}
+                })
+                .catch(err => {
+                    console.warn('Failed to generate AI title:', err);
+                    showNotification('Could not generate custom title', 'warning');
+                });
+        }, 500); // Short delay before generating name
+    }
 
     /**
      * Process API response and update UI
@@ -1356,58 +1356,58 @@ function generateAIConversationName(userMsg, aiReply) {
     /**
      * Create new conversation
      */
-function createNewConversation() {
-    // Generate new conversation ID
-    state.activeConversationId = generateId();
-    
-    // Use a timestamp for the initial temporary name
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    state.activeConversationName = `New Chat (${timestamp})`;
-    
-    // Update UI
-    elements.sectionTitle.textContent = state.activeConversationName;
-    elements.chatMessages.innerHTML = '';
-    
-    // Reset chat history for API context
-    chatHistory = [];
-    
-    // Add welcome message
-    const welcomeMessage = "Hello! I'm Aziona, your AI assistant. How can I help you today?";
-    addMessageToUI('assistant', welcomeMessage);
-    
-    // Add welcome message to chatHistory for API context
-    chatHistory.push({
-        role: 'assistant',
-        content: welcomeMessage
-    });
-    
-    // Create conversation object with welcome message
-    const newConversation = {
-        id: state.activeConversationId,
-        name: state.activeConversationName,
-        timestamp: Date.now(),
-        messages: [{
+    function createNewConversation() {
+        // Generate new conversation ID
+        state.activeConversationId = generateId();
+
+        // Use a timestamp for the initial temporary name
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        state.activeConversationName = `New Chat (${timestamp})`;
+
+        // Update UI
+        elements.sectionTitle.textContent = state.activeConversationName;
+        elements.chatMessages.innerHTML = '';
+
+        // Reset chat history for API context
+        chatHistory = [];
+
+        // Add welcome message
+        const welcomeMessage = "Hello! I'm Aziona, your AI assistant. How can I help you today?";
+        addMessageToUI('assistant', welcomeMessage);
+
+        // Add welcome message to chatHistory for API context
+        chatHistory.push({
             role: 'assistant',
-            content: welcomeMessage,
-            timestamp: Date.now()
-        }]
-    };
-    
-    // Add to chat history
-    state.chatHistory.unshift(newConversation);
-    
-    // Flag for first user message handling
-    state.isNewConversation = true;
-    
-    // Save to localStorage
-    if (state.settings.saveHistory) {
-        localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
-        localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
-        updateHistoryUI();
+            content: welcomeMessage
+        });
+
+        // Create conversation object with welcome message
+        const newConversation = {
+            id: state.activeConversationId,
+            name: state.activeConversationName,
+            timestamp: Date.now(),
+            messages: [{
+                role: 'assistant',
+                content: welcomeMessage,
+                timestamp: Date.now()
+            }]
+        };
+
+        // Add to chat history
+        state.chatHistory.unshift(newConversation);
+
+        // Flag for first user message handling
+        state.isNewConversation = true;
+
+        // Save to localStorage
+        if (state.settings.saveHistory) {
+            localStorage.setItem(STORAGE_KEYS.CONVERSATIONS, JSON.stringify(state.chatHistory));
+            localStorage.setItem(STORAGE_KEYS.ACTIVE_CONVERSATION, state.activeConversationId);
+            updateHistoryUI();
+        }
+
+        updateSuggestionChips(true);
     }
-    
-    updateSuggestionChips(true);
-}
 
     /**
      * Resize input based on content
@@ -2354,583 +2354,605 @@ function createNewConversation() {
 
         setupYouTubeEventListeners();
 
-         mobileActionPopup.init();
+        mobileActionPopup.init();
 
     }
 
-// YouTube Integration Functions
-const youtubeFeatures = {
-    
-    /**
-     * Search YouTube videos
-     */
-    async searchVideos(query, maxResults = 5) {
-        try {
-            const response = await fetch('/api/youtube', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'search',
-                    query: query,
-                    maxResults: maxResults
-                })
+    // YouTube Integration Functions
+    const youtubeFeatures = {
+
+        /**
+         * Search YouTube videos
+         */
+        async searchVideos(query, maxResults = 5) {
+            try {
+                const response = await fetch('/api/youtube', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'search',
+                        query: query,
+                        maxResults: maxResults
+                    })
+                });
+
+                const data = await response.json();
+                return data.items || [];
+            } catch (error) {
+                console.error('YouTube search error:', error);
+                return [];
+            }
+        },
+
+        /**
+         * Get video details
+         */
+        async getVideoDetails(videoId) {
+            try {
+                const response = await fetch('/api/youtube', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'videoDetails',
+                        videoId: videoId
+                    })
+                });
+
+                const data = await response.json();
+                return data.items ? data.items[0] : null;
+            } catch (error) {
+                console.error('YouTube video details error:', error);
+                return null;
+            }
+        },
+
+        /**
+         * Extract video ID from YouTube URL
+         */
+        extractVideoId(url) {
+            const patterns = [
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&\n?#]+)/,
+                /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^&\n?#]+)/,
+                /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^&\n?#]+)/,
+            ];
+
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            return null;
+        },
+
+        /**
+         * Format video results for display
+         */
+        formatVideoResults(videos) {
+            if (!videos.length) return 'No videos found.';
+
+            const isMobile = window.innerWidth <= 768;
+            let result = '## 🎥 YouTube Search Results\n\n';
+
+            videos.forEach((video, index) => {
+                const title = video.snippet.title;
+                const channel = video.snippet.channelTitle;
+                const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
+                const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+                const thumbnail = video.snippet.thumbnails.medium.url;
+
+                result += `### ${index + 1}. [${title}](${videoUrl})\n`;
+                result += `**Channel:** ${channel}\n`;
+                result += `**Description:** ${description}\n`;
+
+                // Only show thumbnails on larger screens to save mobile data
+                if (!isMobile) {
+                    result += `![Thumbnail](${thumbnail})\n`;
+                }
+                result += '\n';
             });
-            
-            const data = await response.json();
-            return data.items || [];
+
+            return result;
+        },
+
+        /**
+         * Format video details for analysis with mobile optimization
+         */
+        formatVideoDetails(video) {
+            if (!video) return 'Video details not available.';
+
+            const snippet = video.snippet;
+            const statistics = video.statistics;
+            const contentDetails = video.contentDetails;
+            const isMobile = window.innerWidth <= 768;
+
+            let result = `## 📊 Video Analysis\n\n`;
+            result += `**Title:** ${snippet.title}\n`;
+            result += `**Channel:** ${snippet.channelTitle}\n`;
+            result += `**Published:** ${new Date(snippet.publishedAt).toLocaleDateString()}\n`;
+            result += `**Duration:** ${this.formatDuration(contentDetails.duration)}\n`;
+            result += `**Views:** ${parseInt(statistics.viewCount).toLocaleString()}\n`;
+            result += `**Likes:** ${parseInt(statistics.likeCount || 0).toLocaleString()}\n`;
+            result += `**Comments:** ${parseInt(statistics.commentCount || 0).toLocaleString()}\n\n`;
+
+            // Truncate description for mobile
+            const descriptionLength = isMobile ? 300 : 500;
+            result += `**Description:**\n${snippet.description.substring(0, descriptionLength)}${snippet.description.length > descriptionLength ? '...' : ''}\n\n`;
+
+            // Show fewer tags on mobile
+            if (snippet.tags) {
+                const tagsToShow = isMobile ? snippet.tags.slice(0, 5) : snippet.tags;
+                result += `**Tags:** ${tagsToShow.join(', ')}${snippet.tags.length > tagsToShow.length ? '...' : ''}\n`;
+            } else {
+                result += `**Tags:** No tags\n`;
+            }
+
+            return result;
+        },
+
+        /**
+         * Format ISO 8601 duration to readable format
+         */
+        formatDuration(duration) {
+            const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+            const hours = (match[1] || '').replace('H', '');
+            const minutes = (match[2] || '').replace('M', '');
+            const seconds = (match[3] || '').replace('S', '');
+
+            return [hours, minutes, seconds].filter(Boolean).join(':');
+        }
+    };
+
+    // Enhanced message processing for YouTube content
+    function enhancedFetchBotResponse(userMessage) {
+        // Check if user wants to search YouTube
+        const youtubeSearchPattern = /(?:search|find|look for|show me).+(?:youtube|videos?|on youtube)/i;
+        const youtubeUrlPattern = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)/;
+
+        if (youtubeSearchPattern.test(userMessage)) {
+            handleYouTubeSearch(userMessage);
+            return;
+        }
+
+        if (youtubeUrlPattern.test(userMessage)) {
+            handleYouTubeAnalysis(userMessage);
+            return;
+        }
+
+        // Fall back to regular AI response
+        fetchBotResponse(userMessage);
+    }
+
+    /**
+     * Handle YouTube search requests
+     */
+    async function handleYouTubeSearch(userMessage) {
+        showTypingIndicator();
+
+        try {
+            // Show mobile-friendly loading message
+            if (window.innerWidth <= 768) {
+                showNotification('Searching YouTube...', 'info');
+            }
+
+            // Extract search query
+            const searchQuery = userMessage.replace(/(?:search|find|look for|show me)/i, '').replace(/(?:youtube|videos?|on youtube)/i, '').trim();
+
+            // Search YouTube with mobile-appropriate result count
+            const maxResults = window.innerWidth <= 768 ? 3 : 5;
+            const videos = await youtubeFeatures.searchVideos(searchQuery, maxResults);
+
+            if (videos.length === 0) {
+                removeTypingIndicator();
+                const noResultsMessage = `I couldn't find any YouTube videos for "${searchQuery}". Try a different search term.`;
+                addMessageToUI('assistant', noResultsMessage);
+                saveMessageToConversation('assistant', noResultsMessage);
+                return;
+            }
+
+            // Format results with mobile optimization
+            const formattedResults = youtubeFeatures.formatVideoResults(videos);
+
+            // Get AI analysis of the search results
+            const analysisPrompt = `Based on these YouTube search results for "${searchQuery}", provide a helpful summary and recommendations:\n\n${formattedResults}`;
+
+            // Get AI response about the search results
+            const response = await getAIResponse(analysisPrompt);
+
+            removeTypingIndicator();
+
+            const fullResponse = `${formattedResults}\n\n---\n\n${response}`;
+            addMessageToUI('assistant', fullResponse);
+            saveMessageToConversation('assistant', fullResponse);
+
+            // Show success notification on mobile
+            if (window.innerWidth <= 768) {
+                showNotification('YouTube search completed!', 'success');
+            }
+
         } catch (error) {
             console.error('YouTube search error:', error);
-            return [];
+            removeTypingIndicator();
+            const errorMessage = 'Sorry, I encountered an error while searching YouTube. Please try again.';
+            addMessageToUI('assistant', errorMessage);
+            saveMessageToConversation('assistant', errorMessage);
+
+            // Show error notification on mobile
+            if (window.innerWidth <= 768) {
+                showNotification('YouTube search failed', 'error');
+            }
         }
-    },
+    }
 
     /**
-     * Get video details
+     * Handle YouTube video analysis
      */
-    async getVideoDetails(videoId) {
+    async function handleYouTubeAnalysis(userMessage) {
+        showTypingIndicator();
+
         try {
-            const response = await fetch('/api/youtube', {
+            // Show mobile-friendly loading message
+            if (window.innerWidth <= 768) {
+                showNotification('Analyzing YouTube video...', 'info');
+            }
+
+            // Extract video ID from URL
+            const videoId = youtubeFeatures.extractVideoId(userMessage);
+
+            if (!videoId) {
+                removeTypingIndicator();
+                const errorMessage = 'I couldn\'t extract the video ID from that YouTube URL. Please make sure it\'s a valid YouTube link.';
+                addMessageToUI('assistant', errorMessage);
+                saveMessageToConversation('assistant', errorMessage);
+                return;
+            }
+
+            // Get video details
+            const videoDetails = await youtubeFeatures.getVideoDetails(videoId);
+
+            if (!videoDetails) {
+                removeTypingIndicator();
+                const errorMessage = 'I couldn\'t retrieve details for that YouTube video. It might be private or unavailable.';
+                addMessageToUI('assistant', errorMessage);
+                saveMessageToConversation('assistant', errorMessage);
+                return;
+            }
+
+            // Format video analysis with mobile optimization
+            const formattedDetails = youtubeFeatures.formatVideoDetails(videoDetails);
+
+            // Get AI insights about the video
+            const analysisPrompt = `Analyze this YouTube video and provide insights, key takeaways, and recommendations:\n\n${formattedDetails}`;
+
+            const aiAnalysis = await getAIResponse(analysisPrompt);
+
+            removeTypingIndicator();
+
+            const fullResponse = `${formattedDetails}\n\n---\n\n## 🤖 AI Analysis\n\n${aiAnalysis}`;
+            addMessageToUI('assistant', fullResponse);
+            saveMessageToConversation('assistant', fullResponse);
+
+            // Show success notification on mobile
+            if (window.innerWidth <= 768) {
+                showNotification('Video analysis completed!', 'success');
+            }
+
+        } catch (error) {
+            console.error('YouTube analysis error:', error);
+            removeTypingIndicator();
+            const errorMessage = 'Sorry, I encountered an error while analyzing that YouTube video. Please try again.';
+            addMessageToUI('assistant', errorMessage);
+            saveMessageToConversation('assistant', errorMessage);
+
+            // Show error notification on mobile
+            if (window.innerWidth <= 768) {
+                showNotification('Video analysis failed', 'error');
+            }
+        }
+    }
+
+    /**
+     * Get AI response for YouTube content
+     */
+    async function getAIResponse(prompt) {
+        try {
+            const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    action: 'videoDetails',
-                    videoId: videoId
+                    model: state.settings.model,
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are Aziona, an AI assistant that helps analyze and discuss YouTube content. Provide insightful, helpful analysis and recommendations."
+                        },
+                        {
+                            role: "user",
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    max_tokens: 500
                 })
             });
-            
+
             const data = await response.json();
-            return data.items ? data.items[0] : null;
+            return data.choices[0].message.content;
         } catch (error) {
-            console.error('YouTube video details error:', error);
-            return null;
-        }
-    },
-
-    /**
-     * Extract video ID from YouTube URL
-     */
-    extractVideoId(url) {
-        const patterns = [
-            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&\n?#]+)/,
-            /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^&\n?#]+)/,
-            /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^&\n?#]+)/,
-        ];
-        
-        for (const pattern of patterns) {
-            const match = url.match(pattern);
-            if (match) return match[1];
-        }
-        return null;
-    },
-
-    /**
-     * Format video results for display
-     */
-    formatVideoResults(videos) {
-        if (!videos.length) return 'No videos found.';
-        
-        const isMobile = window.innerWidth <= 768;
-        let result = '## 🎥 YouTube Search Results\n\n';
-        
-        videos.forEach((video, index) => {
-            const title = video.snippet.title;
-            const channel = video.snippet.channelTitle;
-            const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
-            const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
-            const thumbnail = video.snippet.thumbnails.medium.url;
-            
-            result += `### ${index + 1}. [${title}](${videoUrl})\n`;
-            result += `**Channel:** ${channel}\n`;
-            result += `**Description:** ${description}\n`;
-            
-            // Only show thumbnails on larger screens to save mobile data
-            if (!isMobile) {
-                result += `![Thumbnail](${thumbnail})\n`;
-            }
-            result += '\n';
-        });
-        
-        return result;
-    },
-
-    /**
-     * Format video details for analysis with mobile optimization
-     */
-    formatVideoDetails(video) {
-        if (!video) return 'Video details not available.';
-        
-        const snippet = video.snippet;
-        const statistics = video.statistics;
-        const contentDetails = video.contentDetails;
-        const isMobile = window.innerWidth <= 768;
-        
-        let result = `## 📊 Video Analysis\n\n`;
-        result += `**Title:** ${snippet.title}\n`;
-        result += `**Channel:** ${snippet.channelTitle}\n`;
-        result += `**Published:** ${new Date(snippet.publishedAt).toLocaleDateString()}\n`;
-        result += `**Duration:** ${this.formatDuration(contentDetails.duration)}\n`;
-        result += `**Views:** ${parseInt(statistics.viewCount).toLocaleString()}\n`;
-        result += `**Likes:** ${parseInt(statistics.likeCount || 0).toLocaleString()}\n`;
-        result += `**Comments:** ${parseInt(statistics.commentCount || 0).toLocaleString()}\n\n`;
-        
-        // Truncate description for mobile
-        const descriptionLength = isMobile ? 300 : 500;
-        result += `**Description:**\n${snippet.description.substring(0, descriptionLength)}${snippet.description.length > descriptionLength ? '...' : ''}\n\n`;
-        
-        // Show fewer tags on mobile
-        if (snippet.tags) {
-            const tagsToShow = isMobile ? snippet.tags.slice(0, 5) : snippet.tags;
-            result += `**Tags:** ${tagsToShow.join(', ')}${snippet.tags.length > tagsToShow.length ? '...' : ''}\n`;
-        } else {
-            result += `**Tags:** No tags\n`;
-        }
-        
-        return result;
-    },
-
-    /**
-     * Format ISO 8601 duration to readable format
-     */
-    formatDuration(duration) {
-        const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
-        const hours = (match[1] || '').replace('H', '');
-        const minutes = (match[2] || '').replace('M', '');
-        const seconds = (match[3] || '').replace('S', '');
-        
-        return [hours, minutes, seconds].filter(Boolean).join(':');
-    }
-};
-
-// Enhanced message processing for YouTube content
-function enhancedFetchBotResponse(userMessage) {
-    // Check if user wants to search YouTube
-    const youtubeSearchPattern = /(?:search|find|look for|show me).+(?:youtube|videos?|on youtube)/i;
-    const youtubeUrlPattern = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)/;
-    
-    if (youtubeSearchPattern.test(userMessage)) {
-        handleYouTubeSearch(userMessage);
-        return;
-    }
-    
-    if (youtubeUrlPattern.test(userMessage)) {
-        handleYouTubeAnalysis(userMessage);
-        return;
-    }
-    
-    // Fall back to regular AI response
-    fetchBotResponse(userMessage);
-}
-
-/**
- * Handle YouTube search requests
- */
-async function handleYouTubeSearch(userMessage) {
-    showTypingIndicator();
-    
-    try {
-        // Show mobile-friendly loading message
-        if (window.innerWidth <= 768) {
-            showNotification('Searching YouTube...', 'info');
-        }
-        
-        // Extract search query
-        const searchQuery = userMessage.replace(/(?:search|find|look for|show me)/i, '').replace(/(?:youtube|videos?|on youtube)/i, '').trim();
-        
-        // Search YouTube with mobile-appropriate result count
-        const maxResults = window.innerWidth <= 768 ? 3 : 5;
-        const videos = await youtubeFeatures.searchVideos(searchQuery, maxResults);
-        
-        if (videos.length === 0) {
-            removeTypingIndicator();
-            const noResultsMessage = `I couldn't find any YouTube videos for "${searchQuery}". Try a different search term.`;
-            addMessageToUI('assistant', noResultsMessage);
-            saveMessageToConversation('assistant', noResultsMessage);
-            return;
-        }
-        
-        // Format results with mobile optimization
-        const formattedResults = youtubeFeatures.formatVideoResults(videos);
-        
-        // Get AI analysis of the search results
-        const analysisPrompt = `Based on these YouTube search results for "${searchQuery}", provide a helpful summary and recommendations:\n\n${formattedResults}`;
-        
-        // Get AI response about the search results
-        const response = await getAIResponse(analysisPrompt);
-        
-        removeTypingIndicator();
-        
-        const fullResponse = `${formattedResults}\n\n---\n\n${response}`;
-        addMessageToUI('assistant', fullResponse);
-        saveMessageToConversation('assistant', fullResponse);
-        
-        // Show success notification on mobile
-        if (window.innerWidth <= 768) {
-            showNotification('YouTube search completed!', 'success');
-        }
-        
-    } catch (error) {
-        console.error('YouTube search error:', error);
-        removeTypingIndicator();
-        const errorMessage = 'Sorry, I encountered an error while searching YouTube. Please try again.';
-        addMessageToUI('assistant', errorMessage);
-        saveMessageToConversation('assistant', errorMessage);
-        
-        // Show error notification on mobile
-        if (window.innerWidth <= 768) {
-            showNotification('YouTube search failed', 'error');
+            console.error('AI response error:', error);
+            return 'I apologize, but I couldn\'t generate an analysis at this time.';
         }
     }
-}
 
-/**
- * Handle YouTube video analysis
- */
-async function handleYouTubeAnalysis(userMessage) {
-    showTypingIndicator();
-    
-    try {
-        // Show mobile-friendly loading message
-        if (window.innerWidth <= 768) {
-            showNotification('Analyzing YouTube video...', 'info');
-        }
-        
-        // Extract video ID from URL
-        const videoId = youtubeFeatures.extractVideoId(userMessage);
-        
-        if (!videoId) {
-            removeTypingIndicator();
-            const errorMessage = 'I couldn\'t extract the video ID from that YouTube URL. Please make sure it\'s a valid YouTube link.';
-            addMessageToUI('assistant', errorMessage);
-            saveMessageToConversation('assistant', errorMessage);
-            return;
-        }
-        
-        // Get video details
-        const videoDetails = await youtubeFeatures.getVideoDetails(videoId);
-        
-        if (!videoDetails) {
-            removeTypingIndicator();
-            const errorMessage = 'I couldn\'t retrieve details for that YouTube video. It might be private or unavailable.';
-            addMessageToUI('assistant', errorMessage);
-            saveMessageToConversation('assistant', errorMessage);
-            return;
-        }
-        
-        // Format video analysis with mobile optimization
-        const formattedDetails = youtubeFeatures.formatVideoDetails(videoDetails);
-        
-        // Get AI insights about the video
-        const analysisPrompt = `Analyze this YouTube video and provide insights, key takeaways, and recommendations:\n\n${formattedDetails}`;
-        
-        const aiAnalysis = await getAIResponse(analysisPrompt);
-        
-        removeTypingIndicator();
-        
-        const fullResponse = `${formattedDetails}\n\n---\n\n## 🤖 AI Analysis\n\n${aiAnalysis}`;
-        addMessageToUI('assistant', fullResponse);
-        saveMessageToConversation('assistant', fullResponse);
-        
-        // Show success notification on mobile
-        if (window.innerWidth <= 768) {
-            showNotification('Video analysis completed!', 'success');
-        }
-        
-    } catch (error) {
-        console.error('YouTube analysis error:', error);
-        removeTypingIndicator();
-        const errorMessage = 'Sorry, I encountered an error while analyzing that YouTube video. Please try again.';
-        addMessageToUI('assistant', errorMessage);
-        saveMessageToConversation('assistant', errorMessage);
-        
-        // Show error notification on mobile
-        if (window.innerWidth <= 768) {
-            showNotification('Video analysis failed', 'error');
-        }
+    // Update the existing sendMessage function to use enhanced processing
+    function sendMessage() {
+        const message = elements.chatInput.value.trim();
+        if (!message || state.isTyping) return;
+
+        // Add user message to UI
+        addMessageToUI('user', message);
+        elements.chatInput.value = '';
+        resizeInput();
+
+        // Store message in conversation
+        saveMessageToConversation('user', message);
+        chatHistory.push({ role: 'user', content: message });
+
+        // Use enhanced processing that includes YouTube features
+        enhancedFetchBotResponse(message);
     }
-}
 
-/**
- * Get AI response for YouTube content
- */
-async function getAIResponse(prompt) {
-    try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: state.settings.model,
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are Aziona, an AI assistant that helps analyze and discuss YouTube content. Provide insightful, helpful analysis and recommendations."
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ],
-                temperature: 0.7,
-                max_tokens: 500
-            })
-        });
-        
-        const data = await response.json();
-        return data.choices[0].message.content;
-    } catch (error) {
-        console.error('AI response error:', error);
-        return 'I apologize, but I couldn\'t generate an analysis at this time.';
-    }
-}
-
-// Update the existing sendMessage function to use enhanced processing
-function sendMessage() {
-    const message = elements.chatInput.value.trim();
-    if (!message || state.isTyping) return;
-
-    // Add user message to UI
-    addMessageToUI('user', message);
-    elements.chatInput.value = '';
-    resizeInput();
-
-    // Store message in conversation
-    saveMessageToConversation('user', message);
-    chatHistory.push({ role: 'user', content: message });
-
-    // Use enhanced processing that includes YouTube features
-    enhancedFetchBotResponse(message);
-}
-
-// Add event listeners for YouTube buttons
-function setupYouTubeEventListeners() {
-    // Desktop YouTube search button
-    const desktopSearchBtn = document.getElementById('youtube-search');
-    if (desktopSearchBtn) {
-        desktopSearchBtn.addEventListener('click', async () => {
-            const query = await showPopup({
-                type: 'prompt',
-                title: 'Search YouTube',
-                message: 'Enter your search query:',
-                placeholder: window.innerWidth <= 768 ? 'e.g., "AI tutorials"' : 'e.g., "machine learning tutorials"',
-                confirmText: 'Search'
-            });
-            
-            if (query?.trim()) {
-                elements.chatInput.value = `Search YouTube for ${query.trim()}`;
-                sendMessage();
-            }
-        });
-    }
-    
-    // Desktop YouTube analyze button
-    const desktopAnalyzeBtn = document.getElementById('youtube-analyze');
-    if (desktopAnalyzeBtn) {
-        desktopAnalyzeBtn.addEventListener('click', async () => {
-            const url = await showPopup({
-                type: 'prompt',
-                title: 'Analyze YouTube Video',
-                message: 'Enter the YouTube video URL:',
-                placeholder: window.innerWidth <= 768 ? 'YouTube URL...' : 'https://www.youtube.com/watch?v=...',
-                confirmText: 'Analyze'
-            });
-            
-            if (url?.trim()) {
-                elements.chatInput.value = url.trim();
-                sendMessage();
-            }
-        });
-    }
-    
-    // Add touch event handling for mobile buttons
-    if ('ontouchstart' in window) {
-        const mobileButtons = [
-            'mobile-youtube-search',
-            'mobile-youtube-analyze',
-            'mobile-voice-input',
-            'mobile-attach-file'
-        ];
-        
-        mobileButtons.forEach(id => {
-            const btn = document.getElementById(id);
-            if (btn) {
-                btn.addEventListener('touchstart', function(e) {
-                    this.style.transform = 'translateY(0)';
-                    this.style.background = 'var(--bg-hover)';
+    // Add event listeners for YouTube buttons
+    function setupYouTubeEventListeners() {
+        // Desktop YouTube search button
+        const desktopSearchBtn = document.getElementById('youtube-search');
+        if (desktopSearchBtn) {
+            desktopSearchBtn.addEventListener('click', async () => {
+                const query = await showPopup({
+                    type: 'prompt',
+                    title: 'Search YouTube',
+                    message: 'Enter your search query:',
+                    placeholder: window.innerWidth <= 768 ? 'e.g., "AI tutorials"' : 'e.g., "machine learning tutorials"',
+                    confirmText: 'Search'
                 });
-                
-                btn.addEventListener('touchend', function(e) {
-                    this.style.transform = 'translateY(-2px)';
-                    this.style.background = '';
+
+                if (query?.trim()) {
+                    elements.chatInput.value = `Search YouTube for ${query.trim()}`;
+                    sendMessage();
+                }
+            });
+        }
+
+        // Desktop YouTube analyze button
+        const desktopAnalyzeBtn = document.getElementById('youtube-analyze');
+        if (desktopAnalyzeBtn) {
+            desktopAnalyzeBtn.addEventListener('click', async () => {
+                const url = await showPopup({
+                    type: 'prompt',
+                    title: 'Analyze YouTube Video',
+                    message: 'Enter the YouTube video URL:',
+                    placeholder: window.innerWidth <= 768 ? 'YouTube URL...' : 'https://www.youtube.com/watch?v=...',
+                    confirmText: 'Analyze'
                 });
-            }
+
+                if (url?.trim()) {
+                    elements.chatInput.value = url.trim();
+                    sendMessage();
+                }
+            });
+        }
+
+        // Add touch event handling for mobile buttons
+        if ('ontouchstart' in window) {
+            const mobileButtons = [
+                'mobile-youtube-search',
+                'mobile-youtube-analyze',
+                'mobile-voice-input',
+                'mobile-attach-file'
+            ];
+
+            mobileButtons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('touchstart', function (e) {
+                        this.style.transform = 'translateY(0)';
+                        this.style.background = 'var(--bg-hover)';
+                    });
+
+                    btn.addEventListener('touchend', function (e) {
+                        this.style.transform = 'translateY(-2px)';
+                        this.style.background = '';
+                    });
+                }
+            });
+        }
+    }
+
+    const desktopVoiceBtn = document.getElementById('voice-input');
+    if (desktopVoiceBtn) {
+        desktopVoiceBtn.addEventListener('click', () => {
+            // Your existing voice input logic here
+            mobileActionPopup.handleVoiceInput();
         });
     }
-}
+    // Mobile Action Popup Functions
+    const mobileActionPopup = {
+        popup: null,
+        overlay: null,
+        content: null,
+        isOpen: false,
 
-const desktopVoiceBtn = document.getElementById('voice-input');
-if (desktopVoiceBtn) {
-    desktopVoiceBtn.addEventListener('click', () => {
-        // Your existing voice input logic here
-        mobileActionPopup.handleVoiceInput();
-    });
-}
-// Mobile Action Popup Functions
-const mobileActionPopup = {
-    popup: null,
-    overlay: null,
-    content: null,
-    isOpen: false,
-    
-    init() {
-        this.popup = document.getElementById('mobile-action-popup');
-        this.overlay = document.getElementById('mobile-action-overlay');
-        this.content = document.querySelector('.mobile-action-content');
-        
-        // Setup event listeners
-        this.setupEventListeners();
-    },
-    
-    setupEventListeners() {
-        // More button click
-        document.getElementById('mobile-more-btn').addEventListener('click', () => {
-            this.open();
-        });
-        
-        // Close button
-        document.getElementById('mobile-action-close').addEventListener('click', () => {
-            this.close();
-        });
-        
-        // Overlay click
-        this.overlay.addEventListener('click', () => {
-            this.close();
-        });
-        
-        // Prevent content clicks from closing popup
-        this.content.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
-        
-        // Mobile action buttons
-        document.getElementById('mobile-attach-file').addEventListener('click', () => {
-            this.close();
-            // Trigger the same functionality as desktop attach button
-            showNotification('File attachment coming soon', 'info');
-        });
-        
-        document.getElementById('mobile-voice-input').addEventListener('click', () => {
-            this.close();
-            // Trigger voice input functionality
-            this.handleVoiceInput();
-        });
-        
-        document.getElementById('mobile-youtube-search').addEventListener('click', () => {
-            this.close();
-            // Trigger YouTube search
-            this.handleYouTubeSearch();
-        });
-        
-        document.getElementById('mobile-youtube-analyze').addEventListener('click', () => {
-            this.close();
-            // Trigger YouTube analysis
-            this.handleYouTubeAnalyze();
-        });
-        
-        // Handle escape key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isOpen) {
+        init() {
+            this.popup = document.getElementById('mobile-action-popup');
+            this.overlay = document.getElementById('mobile-action-overlay');
+            this.content = document.querySelector('.mobile-action-content');
+
+            // Setup event listeners
+            this.setupEventListeners();
+        },
+
+        setupEventListeners() {
+            // More button click
+            document.getElementById('mobile-more-btn').addEventListener('click', () => {
+                this.open();
+            });
+
+            // Close button
+            document.getElementById('mobile-action-close').addEventListener('click', () => {
                 this.close();
+            });
+
+            // Overlay click
+            this.overlay.addEventListener('click', () => {
+                this.close();
+            });
+
+            // Prevent content clicks from closing popup
+            this.content.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            // Mobile action buttons
+            document.getElementById('mobile-attach-file').addEventListener('click', () => {
+                this.close();
+                // Trigger the same functionality as desktop attach button
+                showNotification('File attachment coming soon', 'info');
+            });
+
+            document.getElementById('mobile-voice-input').addEventListener('click', () => {
+                this.close();
+                // Trigger voice input functionality
+                this.handleVoiceInput();
+            });
+
+            document.getElementById('mobile-youtube-search').addEventListener('click', () => {
+                this.close();
+                // Trigger YouTube search
+                this.handleYouTubeSearch();
+            });
+
+            document.getElementById('mobile-youtube-analyze').addEventListener('click', () => {
+                this.close();
+                // Trigger YouTube analysis
+                this.handleYouTubeAnalyze();
+            });
+
+            // Handle escape key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && this.isOpen) {
+                    this.close();
+                }
+            });
+        },
+
+        open() {
+            this.popup.classList.add('active');
+            document.body.classList.add('mobile-popup-open');
+            this.isOpen = true;
+
+            // Focus management
+            this.content.focus();
+        },
+
+        close() {
+            this.popup.classList.remove('active');
+            document.body.classList.remove('mobile-popup-open');
+            this.isOpen = false;
+
+            // Return focus to more button
+            document.getElementById('mobile-more-btn').focus();
+        },
+
+        async handleVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                showNotification('Speech recognition not supported in your browser', 'error');
+                return;
             }
-        });
-    },
-    
-    open() {
-        this.popup.classList.add('active');
-        document.body.classList.add('mobile-popup-open');
-        this.isOpen = true;
-        
-        // Focus management
-        this.content.focus();
-    },
-    
-    close() {
-        this.popup.classList.remove('active');
-        document.body.classList.remove('mobile-popup-open');
-        this.isOpen = false;
-        
-        // Return focus to more button
-        document.getElementById('mobile-more-btn').focus();
-    },
-    
-    async handleVoiceInput() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
-        if (!SpeechRecognition) {
-            showNotification('Speech recognition not supported in your browser', 'error');
-            return;
+
+            const recognition = new SpeechRecognition();
+            const voiceBtn = document.getElementById('mobile-voice-input');
+
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                voiceBtn.classList.add('active');
+                showNotification('Listening...', 'info');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                elements.chatInput.value = transcript;
+                resizeInput();
+                showNotification('Voice input received', 'success');
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error', event.error);
+                voiceBtn.classList.remove('active');
+                showNotification(`Error: ${event.error}`, 'error');
+            };
+
+            recognition.onend = () => {
+                voiceBtn.classList.remove('active');
+            };
+
+            recognition.start();
+        },
+
+        async handleYouTubeSearch() {
+            try {
+                const query = await showPopup({
+                    type: 'prompt',
+                    title: 'Search YouTube',
+                    message: 'Enter your search query:',
+                    placeholder: 'e.g., "AI tutorials"',
+                    confirmText: 'Search'
+                });
+
+                // Check if query is valid and not null/undefined
+                if (query && typeof query === 'string' && query.trim()) {
+                    elements.chatInput.value = `Search YouTube for ${query.trim()}`;
+                    sendMessage();
+                } else if (query === null || query === undefined) {
+                    // User cancelled the dialog
+                    console.log('User cancelled YouTube search');
+                } else {
+                    showNotification('Please enter a valid search query', 'warning');
+                }
+            } catch (error) {
+                console.error('Error in YouTube search handler:', error);
+                showNotification('Error opening search dialog', 'error');
+            }
+        },
+
+        async handleYouTubeAnalyze() {
+            try {
+                const url = await showPopup({
+                    type: 'prompt',
+                    title: 'Analyze YouTube Video',
+                    message: 'Enter the YouTube video URL:',
+                    placeholder: 'YouTube URL...',
+                    confirmText: 'Analyze'
+                });
+
+                // Check if URL is valid and not null/undefined
+                if (url && typeof url === 'string' && url.trim()) {
+                    elements.chatInput.value = url.trim();
+                    sendMessage();
+                } else if (url === null || url === undefined) {
+                    // User cancelled the dialog
+                    console.log('User cancelled YouTube analysis');
+                } else {
+                    showNotification('Please enter a valid YouTube URL', 'warning');
+                }
+            } catch (error) {
+                console.error('Error in YouTube analysis handler:', error);
+                showNotification('Error opening analysis dialog', 'error');
+            }
         }
-        
-        const recognition = new SpeechRecognition();
-        const voiceBtn = document.getElementById('mobile-voice-input');
-        
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
-        
-        recognition.onstart = () => {
-            voiceBtn.classList.add('active');
-            showNotification('Listening...', 'info');
-        };
-        
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            elements.chatInput.value = transcript;
-            resizeInput();
-            showNotification('Voice input received', 'success');
-        };
-        
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error', event.error);
-            voiceBtn.classList.remove('active');
-            showNotification(`Error: ${event.error}`, 'error');
-        };
-        
-        recognition.onend = () => {
-            voiceBtn.classList.remove('active');
-        };
-        
-        recognition.start();
-    },
-    
-    async handleYouTubeSearch() {
-        const query = await showPopup({
-            type: 'prompt',
-            title: 'Search YouTube',
-            message: 'Enter your search query:',
-            placeholder: 'e.g., "AI tutorials"',
-            confirmText: 'Search'
-        });
-        
-        if (query?.trim()) {
-            elements.chatInput.value = `Search YouTube for ${query.trim()}`;
-            sendMessage();
-        }
-    },
-    
-    async handleYouTubeAnalyze() {
-        const url = await showPopup({
-            type: 'prompt',
-            title: 'Analyze YouTube Video',
-            message: 'Enter the YouTube video URL:',
-            placeholder: 'YouTube URL...',
-            confirmText: 'Analyze'
-        });
-        
-        if (url?.trim()) {
-            elements.chatInput.value = url.trim();
-            sendMessage();
-        }
-    }
-};
+    };
 
     // Initialize the application
     init();

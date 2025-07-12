@@ -310,7 +310,7 @@ body {
     pointer-events: none;
     border: var(--glass-border);
     box-shadow: var(--glass-shadow);
-    
+
     /* Position below button */
     bottom: -40px;
     left: 50%;
@@ -327,22 +327,25 @@ body {
     background: var(--primary-gradient);
     z-index: 1001;
     pointer-events: none;
-    
+
     /* Position for connection line */
     bottom: -10px;
     left: 50%;
     transform: translateX(-50%);
     animation: tooltip-line-appear 0.3s ease forwards;
 }
+
 .header-actions button.primary-btn[data-tooltip]:hover::before {
     content: none !important;
 }
+
 /* Animations */
 @keyframes tooltip-appear {
     0% {
         opacity: 0;
         transform: translateX(-50%) translateY(-5px);
     }
+
     100% {
         opacity: 1;
         transform: translateX(-50%) translateY(0);
@@ -354,6 +357,7 @@ body {
         opacity: 0;
         height: 0;
     }
+
     100% {
         opacity: 1;
         height: 10px;
@@ -1167,7 +1171,7 @@ body {
     font-size: 0.9rem;
 }
 
-.select-option{
+.select-option {
     color: black !important;
 }
 
@@ -1632,7 +1636,7 @@ body.light-theme .popup-input {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: 
+    background-image:
         linear-gradient(to right, var(--accent-light) 1px, transparent 1px),
         linear-gradient(to bottom, var(--accent-light) 1px, transparent 1px);
     background-size: 40px 40px;
@@ -1660,7 +1664,7 @@ body.light-theme .popup-input {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: 
+    background-image:
         repeating-linear-gradient(45deg, var(--accent-color) 0px, var(--accent-color) 1px, transparent 1px, transparent 15px);
     opacity: 0.15;
     animation: dataFlow 20s infinite linear;
@@ -1694,6 +1698,7 @@ body.light-theme .popup-input {
     0% {
         background-position: 0 0;
     }
+
     100% {
         background-position: 100% 100%;
     }
@@ -1703,16 +1708,20 @@ body.light-theme .popup-input {
     0% {
         transform: translateX(-50%) translateY(-50%);
     }
+
     100% {
         transform: translateX(0%) translateY(0%);
     }
 }
 
 @keyframes pulseGlow {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 0.15;
         transform: scale(1);
     }
+
     50% {
         opacity: 0.25;
         transform: scale(1.2);
@@ -1721,7 +1730,10 @@ body.light-theme .popup-input {
 
 /* Make sure the animations respect reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    .data-particles, .data-particles::before, .glow-effect {
+
+    .data-particles,
+    .data-particles::before,
+    .glow-effect {
         animation: none;
     }
 }
@@ -1736,10 +1748,20 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}/* Add this to your CSS */
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Add this to your CSS */
 #voice-input.active {
     background-color: var(--accent-color);
     color: white;
@@ -1747,10 +1769,20 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}/* Add this to your CSS */
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Add this to your CSS */
 #voice-input.active {
     background-color: var(--accent-color);
     color: white;
@@ -1758,10 +1790,20 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}/* Add this to your CSS */
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Add this to your CSS */
 #voice-input.active {
     background-color: var(--accent-color);
     color: white;
@@ -1769,10 +1811,20 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}/* Add this to your CSS */
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Add this to your CSS */
 #voice-input.active {
     background-color: var(--accent-color);
     color: white;
@@ -1780,10 +1832,20 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}/* Add this to your CSS */
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Add this to your CSS */
 #voice-input.active {
     background-color: var(--accent-color);
     color: white;
@@ -1791,10 +1853,20 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}/* Add this to your CSS */
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Add this to your CSS */
 #voice-input.active {
     background-color: var(--accent-color);
     color: white;
@@ -1802,10 +1874,20 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}/* Add this to your CSS */
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Add this to your CSS */
 #voice-input.active {
     background-color: var(--accent-color);
     color: white;
@@ -1813,10 +1895,20 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}/* Add this to your CSS */
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Add this to your CSS */
 #voice-input.active {
     background-color: var(--accent-color);
     color: white;
@@ -1824,14 +1916,27 @@ body.dark-theme .glow-effect {
 }
 
 @keyframes pulse-recording {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
 
 @keyframes pulse-glow {
-    0% { box-shadow: 0 0 5px var(--accent-color-transparent); }
-    100% { box-shadow: 0 0 15px var(--accent-color); }
+    0% {
+        box-shadow: 0 0 5px var(--accent-color-transparent);
+    }
+
+    100% {
+        box-shadow: 0 0 15px var(--accent-color);
+    }
 }
 
 /* Ensure proper styling in light theme */
@@ -1963,12 +2068,12 @@ body.light-theme .user .message-bubble {
     .header-actions {
         gap: 0.5rem;
     }
-    
+
     .action-btn {
         width: 36px;
         height: 36px;
     }
-    
+
     /* Special handling for tooltips */
     .header-actions button[data-tooltip]:hover::after {
         bottom: -30px;
@@ -1980,17 +2085,17 @@ body.light-theme .user .message-bubble {
         width: 40px;
         height: 40px;
     }
-    
+
     .send-btn {
         width: 44px;
         height: 44px;
     }
-    
+
     /* Increase vertical spacing for form elements */
     .toggle-setting {
         padding: 1rem 0;
     }
-    
+
     /* Make modal buttons more touch-friendly */
     .modal-footer .primary-btn,
     .modal-footer .secondary-btn {
@@ -2002,15 +2107,15 @@ body.light-theme .user .message-bubble {
     .modal {
         width: 95%;
     }
-    
+
     .modal-header {
         padding: 1rem;
     }
-    
+
     .modal-body {
         padding: 1rem;
     }
-    
+
     .modal-footer {
         padding: 0.8rem 1rem 1rem;
     }
@@ -2018,25 +2123,26 @@ body.light-theme .user .message-bubble {
     .section-title {
         font-size: 1.1rem;
     }
-    
+
     .message-bubble {
         padding: 0.8rem 1.2rem;
         line-height: 1.5;
         font-size: 0.95rem;
-                word-break: break-word;
+        word-break: break-word;
         overflow-wrap: break-word;
         hyphens: auto;
     }
-    
+
     .personality-card h4 {
         font-size: 1rem;
     }
-    
+
     .personality-card p {
         font-size: 0.85rem;
     }
 
-    html, body {
+    html,
+    body {
         height: 100%;
         overflow: hidden;
         position: fixed;
@@ -2045,29 +2151,33 @@ body.light-theme .user .message-bubble {
         right: 0;
         bottom: 0;
     }
-    
+
     .app-container {
         height: 100%;
         width: 100%;
     }
-    
+
     .content-area {
         height: 100%;
         overflow: hidden;
     }
-    
+
     .chat-container {
-        height: calc(100% - 56px); /* Subtract header height */
+        height: calc(100% - 56px);
+        /* Subtract header height */
     }
-    
+
     .chat-messages {
-        height: calc(100% - 90px); /* Adjust based on your input height */
+        height: calc(100% - 90px);
+        /* Adjust based on your input height */
         max-height: none;
     }
-    
+
     /* Fix for iOS Safari specifically */
     @supports (-webkit-touch-callout: none) {
-        .chat-container, .content-area {
+
+        .chat-container,
+        .content-area {
             height: -webkit-fill-available;
         }
     }
@@ -2078,7 +2188,7 @@ body.light-theme .user .message-bubble {
         left: 10px;
         width: auto;
     }
-    
+
     .notification {
         max-width: none;
         width: 100%;
@@ -2086,12 +2196,12 @@ body.light-theme .user .message-bubble {
         border-radius: 10px;
         font-size: 0.9rem;
     }
-    
+
     .notification-icon i {
         font-size: 0.9rem;
     }
 
-    .section-title{
+    .section-title {
         margin-left: 50px;
         font-size: 1.2rem;
     }
@@ -2123,26 +2233,26 @@ body.light-theme .user .message-bubble {
     .side-panel {
         padding-top: 1rem;
     }
-    
+
     .ai-logo {
         width: 50px;
         height: 50px;
         margin-bottom: 0.5rem;
     }
-    
+
     .brand h3 {
         font-size: 1.2rem;
     }
-    
+
     .nav-menu {
         margin-top: 0.5rem;
     }
-    
+
     .menu-item {
         margin-bottom: 0.5rem;
         padding: 0.6rem 1rem;
     }
-    
+
     .chat-messages {
         max-height: 40vh;
     }
@@ -2153,32 +2263,33 @@ body.light-theme .user .message-bubble {
         max-width: 95%;
     }
 
-        .message-bubble {
+    .message-bubble {
         padding: 0.7rem 1rem;
         font-size: 0.9rem;
     }
 
-        .chat-messages {
-        padding: 1rem 0.5rem; /* Even less padding on very small screens */
+    .chat-messages {
+        padding: 1rem 0.5rem;
+        /* Even less padding on very small screens */
     }
 
-    .section-title{
+    .section-title {
         margin-left: 50px;
         font-size: 1rem;
     }
-    
+
     .chat-input-wrapper {
         padding: 1rem;
     }
-    
+
     .content-header {
         padding: 1rem;
     }
-    
+
     .header-actions {
         gap: 0.3rem;
     }
-    
+
     .header-actions .action-btn {
         width: 32px;
         height: 32px;
@@ -2192,7 +2303,7 @@ body.light-theme .user .message-bubble {
     .mobile-rename-export {
         display: none;
     }
-    
+
     /* Hide header buttons that will be in modal on mobile */
     .header-actions #rename-btn,
     .header-actions #export-btn {
@@ -2202,7 +2313,7 @@ body.light-theme .user .message-bubble {
     .notification-container {
         top: 80px;
     }
-    
+
     .notification {
         padding: 0.7rem 0.9rem;
         font-size: 0.85rem;
@@ -2210,12 +2321,14 @@ body.light-theme .user .message-bubble {
 }
 
 @media (min-width: 481px) {
+
     /* Hide these options in the modal on desktop */
     #rename-option,
     #export-option {
         display: none;
     }
 }
+
 /* Add this to the bottom of your CSS file */
 
 /* Markdown Content Styling */
@@ -2229,11 +2342,11 @@ body.light-theme .user .message-bubble {
 }
 
 /* Headings */
-.markdown-content h1, 
-.markdown-content h2, 
-.markdown-content h3, 
-.markdown-content h4, 
-.markdown-content h5, 
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
 .markdown-content h6 {
     margin-top: 1.2em;
     margin-bottom: 0.5em;
@@ -2242,12 +2355,29 @@ body.light-theme .user .message-bubble {
     line-height: 1.3;
 }
 
-.markdown-content h1 { font-size: 1.8em; }
-.markdown-content h2 { font-size: 1.5em; }
-.markdown-content h3 { font-size: 1.3em; }
-.markdown-content h4 { font-size: 1.15em; }
-.markdown-content h5 { font-size: 1.05em; }
-.markdown-content h6 { font-size: 1em; }
+.markdown-content h1 {
+    font-size: 1.8em;
+}
+
+.markdown-content h2 {
+    font-size: 1.5em;
+}
+
+.markdown-content h3 {
+    font-size: 1.3em;
+}
+
+.markdown-content h4 {
+    font-size: 1.15em;
+}
+
+.markdown-content h5 {
+    font-size: 1.05em;
+}
+
+.markdown-content h6 {
+    font-size: 1em;
+}
 
 /* Paragraphs and spacing */
 .markdown-content p {
@@ -2255,7 +2385,7 @@ body.light-theme .user .message-bubble {
 }
 
 /* Lists */
-.markdown-content ul, 
+.markdown-content ul,
 .markdown-content ol {
     margin-bottom: 1em;
     padding-left: 2em;
@@ -2326,7 +2456,7 @@ body.light-theme .user .message-bubble {
     background: rgba(30, 41, 59, 0.6);
     border-radius: 8px;
     overflow: hidden;
-        display: block;
+    display: block;
     overflow-x: auto;
     white-space: nowrap;
 }
@@ -2365,7 +2495,7 @@ body.light-theme .user .message-bubble {
     color: var(--accent-color);
     text-decoration: none;
     transition: var(--transition);
-        word-break: break-all;
+    word-break: break-all;
     overflow-wrap: break-word;
 }
 
@@ -2396,7 +2526,7 @@ body.light-theme .user .message-bubble {
     border-bottom: none;
 }
 
-.code-header + pre {
+.code-header+pre {
     margin-top: 0;
     border-top-left-radius: 0;
     border-top-right-radius: 0;
@@ -2459,6 +2589,7 @@ body.light-theme .markdown-content table {
 body.light-theme .markdown-content th {
     background: rgba(0, 136, 255, 0.1);
 }
+
 .code-no-highlight {
     background-color: #282c34;
     color: #abb2bf;
@@ -2467,6 +2598,7 @@ body.light-theme .markdown-content th {
     font-family: monospace;
     white-space: pre-wrap;
 }
+
 .suggestion-chip.loading {
     background: linear-gradient(90deg, #6a11cb 0%, #8e62d1 50%, #6a11cb 100%);
     background-size: 200% 100%;
@@ -2475,8 +2607,13 @@ body.light-theme .markdown-content th {
 }
 
 @keyframes loading-gradient {
-    0% { background-position: 0% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+        background-position: 0% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
 }
 
 /* Footer Styles */
@@ -2508,28 +2645,28 @@ body.light-theme .markdown-content th {
     .app-footer {
         padding: 0.6rem 0;
     }
-    
+
     .footer-bottom {
         padding: 0 1rem;
     }
-    
+
     .footer-bottom p {
         font-size: 0.8rem;
     }
 
-        .markdown-content pre {
+    .markdown-content pre {
         font-size: 0.8em;
         padding: 0.8em;
         overflow-x: auto;
         white-space: pre;
         word-wrap: normal;
     }
-    
+
     .markdown-content pre code {
         font-size: 0.8em;
         white-space: pre;
     }
-    
+
     /* Make code header responsive */
     .code-header {
         padding: 0.4em 0.8em;
@@ -2537,48 +2674,65 @@ body.light-theme .markdown-content th {
         flex-wrap: wrap;
         gap: 0.5em;
     }
-    
+
     .copy-button {
         font-size: 0.75em;
         padding: 0.2em 0.4em;
     }
 
-        .markdown-content table {
+    .markdown-content table {
         font-size: 0.85em;
         display: block;
         overflow-x: auto;
         white-space: nowrap;
         max-width: 100%;
     }
-    
+
     .markdown-content th,
     .markdown-content td {
         padding: 0.5em 0.75em;
         min-width: 100px;
     }
 
-        .markdown-content ul, 
+    .markdown-content ul,
     .markdown-content ol {
         padding-left: 1.5em;
     }
-    
+
     .markdown-content li {
         margin-bottom: 0.4em;
         word-wrap: break-word;
     }
 
-        .markdown-content blockquote {
+    .markdown-content blockquote {
         margin: 0.8em 0;
         padding: 0.4em 0.8em;
         font-size: 0.9em;
     }
 
-    .markdown-content h1 { font-size: 1.5em; }
-    .markdown-content h2 { font-size: 1.3em; }
-    .markdown-content h3 { font-size: 1.2em; }
-    .markdown-content h4 { font-size: 1.1em; }
-    .markdown-content h5 { font-size: 1.05em; }
-    .markdown-content h6 { font-size: 1em; }
+    .markdown-content h1 {
+        font-size: 1.5em;
+    }
+
+    .markdown-content h2 {
+        font-size: 1.3em;
+    }
+
+    .markdown-content h3 {
+        font-size: 1.2em;
+    }
+
+    .markdown-content h4 {
+        font-size: 1.1em;
+    }
+
+    .markdown-content h5 {
+        font-size: 1.05em;
+    }
+
+    .markdown-content h6 {
+        font-size: 1em;
+    }
 }
 
 @media (max-width: 480px) {
@@ -2692,22 +2846,22 @@ body.light-theme .markdown-content th {
         padding: 0.8rem;
         margin: 0.8rem 0;
     }
-    
+
     .youtube-result h4 {
         font-size: 1rem;
         margin-bottom: 0.6rem;
     }
-    
+
     .youtube-result .video-stats {
         flex-direction: column;
         gap: 0.3rem;
         font-size: 0.85rem;
     }
-    
+
     .youtube-result .video-stats span {
         justify-content: flex-start;
     }
-    
+
     .youtube-button {
         padding: 0.5rem 0.8rem;
         font-size: 0.85rem;
@@ -2715,32 +2869,32 @@ body.light-theme .markdown-content th {
         justify-content: center;
         margin-top: 0.5rem;
     }
-    
+
     .video-thumbnail {
         margin: 0.4rem 0;
         border-radius: 8px;
     }
-    
+
     .youtube-suggestions {
         padding: 0.8rem;
         margin: 0.8rem 0;
     }
-    
+
     .youtube-suggestions h4 {
         font-size: 1rem;
         margin-bottom: 0.6rem;
     }
-    
+
     .youtube-suggestions .suggestion-grid {
         grid-template-columns: 1fr;
         gap: 0.8rem;
     }
-    
+
     .youtube-suggestions .suggestion-item {
         padding: 0.6rem;
         font-size: 0.9rem;
     }
-    
+
     /* YouTube input buttons - make them more touch-friendly */
     #youtube-search,
     #youtube-analyze {
@@ -2748,7 +2902,7 @@ body.light-theme .markdown-content th {
         height: 44px;
         font-size: 1rem;
     }
-    
+
     #youtube-search i,
     #youtube-analyze i {
         font-size: 1.1rem;
@@ -2761,38 +2915,38 @@ body.light-theme .markdown-content th {
         margin: 0.7rem 0;
         border-radius: 10px;
     }
-    
+
     .youtube-result h4 {
         font-size: 0.95rem;
         line-height: 1.4;
     }
-    
+
     .youtube-result .video-stats {
         font-size: 0.8rem;
     }
-    
+
     .youtube-button {
         padding: 0.6rem;
         font-size: 0.8rem;
         border-radius: 8px;
     }
-    
+
     .youtube-suggestions {
         padding: 0.7rem;
         margin: 0.7rem 0;
         border-radius: 10px;
     }
-    
+
     .youtube-suggestions h4 {
         font-size: 0.95rem;
     }
-    
+
     .youtube-suggestions .suggestion-item {
         padding: 0.5rem;
         font-size: 0.85rem;
         border-radius: 8px;
     }
-    
+
     /* Input buttons for very small screens */
     #youtube-search,
     #youtube-analyze {
@@ -2800,17 +2954,17 @@ body.light-theme .markdown-content th {
         height: 40px;
         font-size: 0.9rem;
     }
-    
+
     /* Handle landscape mode on mobile */
     @media (orientation: landscape) {
         .youtube-result {
             padding: 0.6rem;
         }
-        
+
         .youtube-result h4 {
             font-size: 0.9rem;
         }
-        
+
         .youtube-button {
             padding: 0.5rem 0.7rem;
             font-size: 0.75rem;
@@ -2876,25 +3030,25 @@ body.light-theme .markdown-content th {
         padding: 0.8rem;
         margin: 0.8rem 0;
     }
-    
+
     .youtube-video-analysis h3 {
         font-size: 1rem;
         margin-bottom: 0.6rem;
     }
-    
+
     .youtube-video-analysis .video-info {
         grid-template-columns: 1fr;
         gap: 0.8rem;
     }
-    
+
     .youtube-video-analysis .video-info-item {
         gap: 0.1rem;
     }
-    
+
     .youtube-video-analysis .video-info-label {
         font-size: 0.75rem;
     }
-    
+
     .youtube-video-analysis .video-info-value {
         font-size: 0.9rem;
     }
@@ -2905,11 +3059,11 @@ body.light-theme .markdown-content th {
         padding: 0.7rem;
         border-radius: 10px;
     }
-    
+
     .youtube-video-analysis h3 {
         font-size: 0.95rem;
     }
-    
+
     .youtube-video-analysis .video-info-value {
         font-size: 0.85rem;
     }
@@ -2942,11 +3096,11 @@ body.light-theme .markdown-content th {
         padding: 1.5rem;
         margin: 0.8rem 0;
     }
-    
+
     .youtube-loading i {
         font-size: 1.5rem;
     }
-    
+
     .youtube-loading span {
         font-size: 0.9rem;
         margin-left: 0.8rem;
@@ -3206,11 +3360,12 @@ body.light-theme .markdown-content th {
 
 /* Mobile responsive styles */
 @media (max-width: 450px) {
+
     /* Hide desktop action buttons */
     .desktop-action-btn {
         display: none;
     }
-    
+
     /* Show mobile more button */
     .mobile-more-btn {
         display: flex;
@@ -3218,53 +3373,53 @@ body.light-theme .markdown-content th {
         color: white;
         box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
     }
-    
+
     .mobile-more-btn:hover {
         transform: translateY(-2px);
         box-shadow: var(--glow-strong);
     }
-    
+
     /* Adjust input container for mobile */
     .input-actions {
         gap: 0.3rem;
     }
-    
+
     .input-action-btn {
         width: 38px;
         height: 38px;
         font-size: 0.9rem;
     }
-    
+
     .send-btn {
         width: 42px;
         height: 42px;
         margin-left: 0.3rem;
     }
-    
+
     /* Adjust mobile popup for very small screens */
     .mobile-action-content {
         border-top-left-radius: 16px;
         border-top-right-radius: 16px;
     }
-    
+
     .mobile-action-header {
         padding: 0.8rem 1rem;
     }
-    
+
     .mobile-action-header h4 {
         font-size: 1rem;
     }
-    
+
     .mobile-action-buttons {
         padding: 0.8rem;
     }
-    
+
     .mobile-action-btn {
         padding: 0.8rem 1rem;
         font-size: 0.9rem;
         border-radius: 10px;
     }
-    
+
     .mobile-action-btn i {
         font-size: 1.1rem;
         width: 22px;
@@ -3276,17 +3431,17 @@ body.light-theme .markdown-content th {
     .mobile-action-header {
         padding: 0.7rem 0.8rem;
     }
-    
+
     .mobile-action-buttons {
         padding: 0.7rem;
     }
-    
+
     .mobile-action-btn {
         padding: 0.7rem 0.8rem;
         font-size: 0.85rem;
         gap: 0.8rem;
     }
-    
+
     .mobile-action-btn i {
         font-size: 1rem;
         width: 20px;
@@ -3310,6 +3465,7 @@ body.light-theme .markdown-content th {
         transform: translateY(100%);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;
