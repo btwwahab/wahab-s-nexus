@@ -2367,79 +2367,76 @@ document.addEventListener('DOMContentLoaded', function () {
      * @param {Object} options - Player options
      * @returns {string} HTML for embedded player
      */
-    createVideoPlayer(videoId, options = {}) {
-        const defaultOptions = {
-            width: '100%',
-            height: '315',
-            autoplay: false,
-            mute: false,
-            controls: true,
-            modestbranding: true,
-            rel: false,
-            showinfo: false
-        };
+        createVideoPlayer(videoId, options = {}) {
+            const defaultOptions = {
+                width: '100%',
+                height: '315',
+                autoplay: false,
+                mute: false,
+                controls: true,
+                modestbranding: true,
+                rel: false,
+                showinfo: false
+            };
 
-        const playerOptions = { ...defaultOptions, ...options };
-        
-        // Build YouTube embed URL with parameters
-        let embedUrl = `https://www.youtube.com/embed/${videoId}?`;
-        
-        const params = new URLSearchParams({
-            autoplay: playerOptions.autoplay ? 1 : 0,
-            mute: playerOptions.mute ? 1 : 0,
-            controls: playerOptions.controls ? 1 : 0,
-            modestbranding: playerOptions.modestbranding ? 1 : 0,
-            rel: playerOptions.rel ? 1 : 0,
-            showinfo: playerOptions.showinfo ? 1 : 0,
-            origin: window.location.origin
-        });
+            const playerOptions = { ...defaultOptions, ...options };
 
-        embedUrl += params.toString();
+            // Build YouTube embed URL with parameters
+            let embedUrl = `https://www.youtube.com/embed/${videoId}?`;
 
-        // Adjust height for mobile
-        const isMobile = window.innerWidth <= 768;
-        const height = isMobile ? '250' : playerOptions.height;
-        const width = isMobile ? '100%' : playerOptions.width;
+const params = new URLSearchParams({
+        autoplay: playerOptions.autoplay ? 1 : 0,
+        mute: playerOptions.mute ? 1 : 0,
+        controls: playerOptions.controls ? 1 : 0,
+        modestbranding: playerOptions.modestbranding ? 1 : 0,
+        rel: playerOptions.rel ? 1 : 0,
+        showinfo: playerOptions.showinfo ? 1 : 0,
+        origin: window.location.origin
+    });
 
-        return `
-            <div class="youtube-player-container" style="position: relative; width: ${width}; margin: 1rem 0;">
-                <iframe 
-                    src="${embedUrl}"
-                    width="${width}" 
-                    height="${height}"
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen
-                    style="border-radius: 8px; max-width: 100%;"
-                    loading="lazy">
-                </iframe>
-                <div class="player-controls" style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button class="youtube-action-btn" onclick="youtubeFeatures.openInYouTube('${videoId}')" title="Open in YouTube">
-                        <i class="fab fa-youtube"></i> Watch on YouTube
-                    </button>
-                    <button class="youtube-action-btn" onclick="youtubeFeatures.shareVideo('${videoId}')" title="Share video">
-                        <i class="fas fa-share"></i> Share
-                    </button>
-                    <button class="youtube-action-btn" onclick="youtubeFeatures.copyVideoUrl('${videoId}')" title="Copy URL">
-                        <i class="fas fa-link"></i> Copy Link
-                    </button>
-                </div>
+    embedUrl += params.toString();
+
+    // Adjust height for mobile
+    const isMobile = window.innerWidth <= 768;
+    const height = isMobile ? '250' : playerOptions.height;
+    const width = isMobile ? '100%' : playerOptions.width;
+
+    return `
+        <div class="youtube-player-container" style="position: relative; width: ${width}; margin: 1rem 0;">
+            <iframe 
+                src="${embedUrl}"
+                width="${width}" 
+                height="${height}"
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                allowfullscreen
+                style="border-radius: 8px; max-width: 100%;"
+                loading="lazy">
+            </iframe>
+            <div class="player-controls" style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="youtube-action-btn" onclick="openYouTubeVideo('${videoId}')" title="Open in YouTube">
+                    <i class="fab fa-youtube"></i> Watch on YouTube
+                </button>
+                <button class="youtube-action-btn" onclick="copyYouTubeUrl('${videoId}')" title="Copy URL">
+                    <i class="fas fa-link"></i> Copy Link
+                </button>
             </div>
-        `;
-    },
+        </div>
+    `;
+},
 
-    /**
-     * Create a playlist player for multiple videos
-     * @param {Array} videos - Array of video objects
-     * @returns {string} HTML for playlist player
-     */
-    createPlaylistPlayer(videos) {
-        if (!videos || videos.length === 0) return '';
+        /**
+         * Create a playlist player for multiple videos
+         * @param {Array} videos - Array of video objects
+         * @returns {string} HTML for playlist player
+         */
+        createPlaylistPlayer(videos) {
+            if (!videos || videos.length === 0) return '';
 
-        const firstVideo = videos[0];
-        const videoId = firstVideo.id.videoId || firstVideo.id;
-        
-        let playlistHtml = `
+            const firstVideo = videos[0];
+            const videoId = firstVideo.id.videoId || firstVideo.id;
+
+            let playlistHtml = `
             <div class="youtube-playlist-container">
                 <div class="current-player">
                     ${this.createVideoPlayer(videoId, { height: '400' })}
@@ -2449,13 +2446,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     <div class="playlist-items">
         `;
 
-        videos.forEach((video, index) => {
-            const id = video.id.videoId || video.id;
-            const title = video.snippet.title;
-            const thumbnail = video.snippet.thumbnails.default.url;
-            const duration = video.contentDetails?.duration || 'N/A';
-            
-            playlistHtml += `
+            videos.forEach((video, index) => {
+                const id = video.id.videoId || video.id;
+                const title = video.snippet.title;
+                const thumbnail = video.snippet.thumbnails.default.url;
+                const duration = video.contentDetails?.duration || 'N/A';
+
+                playlistHtml += `
                 <div class="playlist-item ${index === 0 ? 'active' : ''}" 
                      data-video-id="${id}" 
                      onclick="youtubeFeatures.switchVideo('${id}', this)">
@@ -2466,142 +2463,131 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             `;
-        });
+            });
 
-        playlistHtml += `
+            playlistHtml += `
                     </div>
                 </div>
             </div>
         `;
 
-        return playlistHtml;
-    },
+            return playlistHtml;
+        },
 
-    /**
-     * Switch video in playlist player
-     * @param {string} videoId - New video ID to play
-     * @param {HTMLElement} clickedItem - Clicked playlist item
-     */
-    switchVideo(videoId, clickedItem) {
-        // Update active playlist item
-        document.querySelectorAll('.playlist-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        clickedItem.classList.add('active');
-
-        // Update the iframe source
-        const iframe = document.querySelector('.current-player iframe');
-        if (iframe) {
-            const newSrc = iframe.src.replace(/embed\/[^?]+/, `embed/${videoId}`);
-            iframe.src = newSrc;
-        }
-
-        // Scroll the clicked item into view
-        clickedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    },
-
-    /**
-     * Open video in YouTube
-     * @param {string} videoId - YouTube video ID
-     */
-    openInYouTube(videoId) {
-        const url = `https://www.youtube.com/watch?v=${videoId}`;
-        window.open(url, '_blank');
-    },
-
-    /**
-     * Share video
-     * @param {string} videoId - YouTube video ID
-     */
-    async shareVideo(videoId) {
-        const url = `https://www.youtube.com/watch?v=${videoId}`;
-        
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: 'YouTube Video',
-                    url: url
-                });
-                showNotification('Video shared successfully', 'success');
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    this.copyVideoUrl(videoId);
-                }
-            }
-        } else {
-            this.copyVideoUrl(videoId);
-        }
-    },
-
-    /**
-     * Copy video URL to clipboard
-     * @param {string} videoId - YouTube video ID
-     */
-    async copyVideoUrl(videoId) {
-        const url = `https://www.youtube.com/watch?v=${videoId}`;
-        
-        try {
-            await navigator.clipboard.writeText(url);
-            showNotification('Video URL copied to clipboard', 'success');
-        } catch (error) {
-            console.error('Failed to copy URL:', error);
-            showNotification('Failed to copy URL', 'error');
-        }
-    },
-
-    /**
-     * Enhanced format video results with player option
-     */
-    formatVideoResultsWithPlayer(videos, includePlayer = false) {
-        if (!videos.length) return 'No videos found.';
-
-        const isMobile = window.innerWidth <= 768;
-        let result = '';
-
-        if (includePlayer && videos.length > 0) {
-            // Add embedded player for first video
-            const firstVideo = videos[0];
-            const videoId = firstVideo.id.videoId;
-            
-            result += `## 🎥 Now Playing\n\n`;
-            result += `### ${firstVideo.snippet.title}\n`;
-            result += `**Channel:** ${firstVideo.snippet.channelTitle}\n\n`;
-            
-            // Add the video player
-            const playerHtml = this.createVideoPlayer(videoId, { 
-                height: isMobile ? '250' : '400',
-                autoplay: false 
+        /**
+         * Switch video in playlist player
+         * @param {string} videoId - New video ID to play
+         * @param {HTMLElement} clickedItem - Clicked playlist item
+         */
+        switchVideo(videoId, clickedItem) {
+            // Update active playlist item
+            document.querySelectorAll('.playlist-item').forEach(item => {
+                item.classList.remove('active');
             });
-            
-            // Since we can't directly insert HTML in markdown, we'll add it differently
-            result += `[PLAYER:${videoId}]\n\n`;
-        }
+            clickedItem.classList.add('active');
 
-        result += `## 📝 Search Results (${videos.length} videos)\n\n`;
-
-        videos.forEach((video, index) => {
-            const title = video.snippet.title;
-            const channel = video.snippet.channelTitle;
-            const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
-            const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
-            const thumbnail = video.snippet.thumbnails.medium.url;
-            const videoId = video.id.videoId;
-
-            result += `### ${index + 1}. ${title}\n`;
-            result += `**Channel:** ${channel}\n`;
-            result += `**Description:** ${description}\n`;
-            result += `**URL:** [Watch on YouTube](${videoUrl})\n`;
-            
-            if (!isMobile) {
-                result += `![Thumbnail](${thumbnail})\n`;
+            // Update the iframe source
+            const iframe = document.querySelector('.current-player iframe');
+            if (iframe) {
+                const newSrc = iframe.src.replace(/embed\/[^?]+/, `embed/${videoId}`);
+                iframe.src = newSrc;
             }
-            
-            // Add play button for each video
-            result += `[PLAY_BUTTON:${videoId}]\n\n`;
-        });
 
-        return result;
-    },
+            // Scroll the clicked item into view
+            clickedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        },
+
+        /**
+         * Open video in YouTube
+         * @param {string} videoId - YouTube video ID
+         */
+        openInYouTube(videoId) {
+            const url = `https://www.youtube.com/watch?v=${videoId}`;
+            window.open(url, '_blank');
+        },
+
+        /**
+         * Share video
+         * @param {string} videoId - YouTube video ID
+         */
+        async shareVideo(videoId) {
+            const url = `https://www.youtube.com/watch?v=${videoId}`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'YouTube Video',
+                        url: url
+                    });
+                    showNotification('Video shared successfully', 'success');
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        this.copyVideoUrl(videoId);
+                    }
+                }
+            } else {
+                this.copyVideoUrl(videoId);
+            }
+        },
+
+        /**
+         * Copy video URL to clipboard
+         * @param {string} videoId - YouTube video ID
+         */
+        async copyVideoUrl(videoId) {
+            const url = `https://www.youtube.com/watch?v=${videoId}`;
+
+            try {
+                await navigator.clipboard.writeText(url);
+                showNotification('Video URL copied to clipboard', 'success');
+            } catch (error) {
+                console.error('Failed to copy URL:', error);
+                showNotification('Failed to copy URL', 'error');
+            }
+        },
+
+        /**
+         * Enhanced format video results with player option
+         */
+        formatVideoResultsWithPlayer(videos, includePlayer = false) {
+            if (!videos.length) return 'No videos found.';
+
+    const isMobile = window.innerWidth <= 768;
+    let result = '';
+
+    if (includePlayer && videos.length > 0) {
+        // Add embedded player for first video
+        const firstVideo = videos[0];
+        const videoId = firstVideo.id.videoId;
+        
+        result += `## 🎥 Now Playing\n\n`;
+        result += `### ${firstVideo.snippet.title}\n`;
+        result += `**Channel:** ${firstVideo.snippet.channelTitle}\n\n`;
+        
+        // Add the video player placeholder
+        result += `[PLAYER:${videoId}]\n\n`;
+    }
+
+    result += `## 📝 Search Results (${videos.length} videos)\n\n`;
+
+    videos.forEach((video, index) => {
+        const title = video.snippet.title;
+        const channel = video.snippet.channelTitle;
+        const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
+        const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+        const videoId = video.id.videoId;
+
+        result += `${index + 1}. **${title}**\n`;
+        result += `**Channel:** ${channel}\n`;
+        result += `**Description:** ${description}\n`;
+        result += `**URL:** [Watch on YouTube](${videoUrl})\n`;
+        
+        // Add play button for each video
+        result += `[PLAY_BUTTON:${videoId}]\n\n`;
+    });
+
+    return result;
+},
 
         /**
          * Search YouTube videos
@@ -2766,108 +2752,108 @@ document.addEventListener('DOMContentLoaded', function () {
     /**
      * Handle YouTube search requests
      */
-async function handleYouTubeSearch(userMessage) {
-    showTypingIndicator();
+    async function handleYouTubeSearch(userMessage) {
+        showTypingIndicator();
 
-    try {
-        if (window.innerWidth <= 768) {
-            showNotification('Searching YouTube...', 'info');
-        }
+        try {
+            if (window.innerWidth <= 768) {
+                showNotification('Searching YouTube...', 'info');
+            }
 
-        // Extract search query
-        const searchQuery = userMessage.replace(/(?:search|find|look for|show me)/i, '').replace(/(?:youtube|videos?|on youtube)/i, '').trim();
+            // Extract search query
+            const searchQuery = userMessage.replace(/(?:search|find|look for|show me)/i, '').replace(/(?:youtube|videos?|on youtube)/i, '').trim();
 
-        // Search YouTube with mobile-appropriate result count
-        const maxResults = window.innerWidth <= 768 ? 3 : 5;
-        const videos = await youtubeFeatures.searchVideos(searchQuery, maxResults);
+            // Search YouTube with mobile-appropriate result count
+            const maxResults = window.innerWidth <= 768 ? 3 : 5;
+            const videos = await youtubeFeatures.searchVideos(searchQuery, maxResults);
 
-        if (videos.length === 0) {
+            if (videos.length === 0) {
+                removeTypingIndicator();
+                const noResultsMessage = `I couldn't find any YouTube videos for "${searchQuery}". Try a different search term.`;
+                addMessageToUI('assistant', noResultsMessage);
+                saveMessageToConversation('assistant', noResultsMessage);
+                return;
+            }
+
+            // Check if user wants to play videos or just search
+            const shouldIncludePlayer = userMessage.toLowerCase().includes('play') ||
+                userMessage.toLowerCase().includes('watch') ||
+                userMessage.toLowerCase().includes('show');
+
+            // Format results with optional player
+            const formattedResults = youtubeFeatures.formatVideoResultsWithPlayer(videos, shouldIncludePlayer);
+
+            // Get AI analysis of the search results
+            const analysisPrompt = `Based on these YouTube search results for "${searchQuery}", provide a helpful summary and recommendations:\n\n${formattedResults}`;
+
+            const response = await getAIResponse(analysisPrompt);
+
             removeTypingIndicator();
-            const noResultsMessage = `I couldn't find any YouTube videos for "${searchQuery}". Try a different search term.`;
-            addMessageToUI('assistant', noResultsMessage);
-            saveMessageToConversation('assistant', noResultsMessage);
-            return;
-        }
 
-        // Check if user wants to play videos or just search
-        const shouldIncludePlayer = userMessage.toLowerCase().includes('play') || 
-                                   userMessage.toLowerCase().includes('watch') ||
-                                   userMessage.toLowerCase().includes('show');
+            const fullResponse = `${formattedResults}\n\n---\n\n${response}`;
 
-        // Format results with optional player
-        const formattedResults = youtubeFeatures.formatVideoResultsWithPlayer(videos, shouldIncludePlayer);
+            // Add message with special processing for video players
+            addMessageToUIWithPlayers('assistant', fullResponse, videos);
+            saveMessageToConversation('assistant', fullResponse);
 
-        // Get AI analysis of the search results
-        const analysisPrompt = `Based on these YouTube search results for "${searchQuery}", provide a helpful summary and recommendations:\n\n${formattedResults}`;
+            if (window.innerWidth <= 768) {
+                showNotification('YouTube search completed!', 'success');
+            }
 
-        const response = await getAIResponse(analysisPrompt);
+        } catch (error) {
+            console.error('YouTube search error:', error);
+            removeTypingIndicator();
+            const errorMessage = 'Sorry, I encountered an error while searching YouTube. Please try again.';
+            addMessageToUI('assistant', errorMessage);
+            saveMessageToConversation('assistant', errorMessage);
 
-        removeTypingIndicator();
-
-        const fullResponse = `${formattedResults}\n\n---\n\n${response}`;
-        
-        // Add message with special processing for video players
-        addMessageToUIWithPlayers('assistant', fullResponse, videos);
-        saveMessageToConversation('assistant', fullResponse);
-
-        if (window.innerWidth <= 768) {
-            showNotification('YouTube search completed!', 'success');
-        }
-
-    } catch (error) {
-        console.error('YouTube search error:', error);
-        removeTypingIndicator();
-        const errorMessage = 'Sorry, I encountered an error while searching YouTube. Please try again.';
-        addMessageToUI('assistant', errorMessage);
-        saveMessageToConversation('assistant', errorMessage);
-
-        if (window.innerWidth <= 768) {
-            showNotification('YouTube search failed', 'error');
+            if (window.innerWidth <= 768) {
+                showNotification('YouTube search failed', 'error');
+            }
         }
     }
-}
 
-// Add these new functions
+    // Add these new functions
 
-/**
- * Add message to UI with video players
- * @param {string} role - Role of message sender
- * @param {string} content - Message content
- * @param {string} videoId - Single video ID for player
- */
-function addMessageToUIWithPlayer(role, content, videoId) {
-    // Process the content to replace player placeholders
-    const processedContent = content.replace(/\[PLAYER:([^\]]+)\]/g, (match, id) => {
-        return `<div class="youtube-player-embed">${youtubeFeatures.createVideoPlayer(id)}</div>`;
-    });
+    /**
+     * Add message to UI with video players
+     * @param {string} role - Role of message sender
+     * @param {string} content - Message content
+     * @param {string} videoId - Single video ID for player
+     */
+    function addMessageToUIWithPlayer(role, content, videoId) {
+        // Process the content to replace player placeholders
+        const processedContent = content.replace(/\[PLAYER:([^\]]+)\]/g, (match, id) => {
+            return `<div class="youtube-player-embed">${youtubeFeatures.createVideoPlayer(id)}</div>`;
+        });
 
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${role}`;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
 
-    // Set up marked.js options
-    marked.setOptions({
-        renderer: new marked.Renderer(),
-        highlight: function (code, lang) {
-            return code;
-        },
-        langPrefix: 'language-',
-        pedantic: false,
-        gfm: true,
-        breaks: true,
-        sanitize: false,
-        smartypants: true,
-        xhtml: false
-    });
+        // Set up marked.js options
+        marked.setOptions({
+            renderer: new marked.Renderer(),
+            highlight: function (code, lang) {
+                return code;
+            },
+            langPrefix: 'language-',
+            pedantic: false,
+            gfm: true,
+            breaks: true,
+            sanitize: false,
+            smartypants: true,
+            xhtml: false
+        });
 
-    let finalContent;
-    if (role === 'assistant') {
-        // Process markdown and then add video players
-        finalContent = marked.parse(processedContent);
-    } else {
-        finalContent = processedContent.replace(/\n/g, '<br>');
-    }
+        let finalContent;
+        if (role === 'assistant') {
+            // Process markdown and then add video players
+            finalContent = marked.parse(processedContent);
+        } else {
+            finalContent = processedContent.replace(/\n/g, '<br>');
+        }
 
-    messageDiv.innerHTML = `
+        messageDiv.innerHTML = `
         <div class="message-content">
             <div class="message-bubble ${role === 'assistant' ? 'markdown-content' : ''}">
                 ${finalContent}
@@ -2890,78 +2876,76 @@ function addMessageToUIWithPlayer(role, content, videoId) {
         </div>
     `;
 
-    // Add mobile responsive handling
-    if (window.innerWidth <= 768) {
-        messageDiv.style.maxWidth = '95%';
-        
-        const iframes = messageDiv.querySelectorAll('iframe');
-        iframes.forEach(iframe => {
-            iframe.style.width = '100%';
-            iframe.style.height = '250px';
+        // Add mobile responsive handling
+        if (window.innerWidth <= 768) {
+            messageDiv.style.maxWidth = '95%';
+
+            const iframes = messageDiv.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                iframe.style.width = '100%';
+                iframe.style.height = '250px';
+            });
+        }
+
+        // Add event listeners for message actions
+        setupMessageActions(messageDiv, content, role);
+
+        elements.chatMessages.appendChild(messageDiv);
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+    }
+
+    /**
+     * Add message to UI with multiple video players
+     * @param {string} role - Role of message sender
+     * @param {string} content - Message content
+     * @param {Array} videos - Array of video objects
+     */
+    function addMessageToUIWithPlayers(role, content, videos) {
+        // Process content to replace player and button placeholders
+        let processedContent = content.replace(/\[PLAYER:([^\]]+)\]/g, (match, id) => {
+            return `<div class="youtube-player-embed" data-video-id="${id}"></div>`;
         });
-    }
 
-    // Add event listeners for message actions
-    setupMessageActions(messageDiv, content, role);
+        // Replace play buttons with proper HTML
+        processedContent = processedContent.replace(/\[PLAY_BUTTON:([^\]]+)\]/g, (match, id) => {
+            const video = videos.find(v => v.id.videoId === id);
+            const title = video ? video.snippet.title : 'Unknown Video';
 
-    elements.chatMessages.appendChild(messageDiv);
-    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-}
+            return `<div class="youtube-play-button-container" data-video-id="${id}">
+            <button class="youtube-play-btn" onclick="playYouTubeVideo('${id}', this)">
+                <i class="fas fa-play"></i> Play Video
+            </button>
+            <button class="youtube-action-btn secondary" onclick="openYouTubeVideo('${id}')">
+                <i class="fab fa-youtube"></i> YouTube
+            </button>
+        </div>`;
+        });
 
-/**
- * Add message to UI with multiple video players
- * @param {string} role - Role of message sender
- * @param {string} content - Message content
- * @param {Array} videos - Array of video objects
- */
-function addMessageToUIWithPlayers(role, content, videos) {
-    // Process content to replace player and button placeholders
-    let processedContent = content.replace(/\[PLAYER:([^\]]+)\]/g, (match, id) => {
-        return `<div class="youtube-player-embed">${youtubeFeatures.createVideoPlayer(id)}</div>`;
-    });
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
 
-    // Replace play buttons
-    processedContent = processedContent.replace(/\[PLAY_BUTTON:([^\]]+)\]/g, (match, id) => {
-        const video = videos.find(v => v.id.videoId === id);
-        const title = video ? video.snippet.title : 'Unknown Video';
-        
-        return `
-            <div class="youtube-play-button-container">
-                <button class="youtube-play-btn" onclick="youtubeFeatures.playVideoInline('${id}', this)" data-video-id="${id}">
-                    <i class="fas fa-play"></i> Play Video
-                </button>
-                <button class="youtube-action-btn secondary" onclick="youtubeFeatures.openInYouTube('${id}')">
-                    <i class="fab fa-youtube"></i> YouTube
-                </button>
-            </div>
-        `;
-    });
+        marked.setOptions({
+            renderer: new marked.Renderer(),
+            highlight: function (code, lang) {
+                return code;
+            },
+            langPrefix: 'language-',
+            pedantic: false,
+            gfm: true,
+            breaks: true,
+            sanitize: false, // Important: don't sanitize so HTML can render
+            smartypants: true,
+            xhtml: false
+        });
 
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${role}`;
+        let finalContent;
+        if (role === 'assistant') {
+            finalContent = marked.parse(processedContent);
+        } else {
+            finalContent = processedContent.replace(/\n/g, '<br>');
+        }
 
-    marked.setOptions({
-        renderer: new marked.Renderer(),
-        highlight: function (code, lang) {
-            return code;
-        },
-        langPrefix: 'language-',
-        pedantic: false,
-        gfm: true,
-        breaks: true,
-        sanitize: false,
-        smartypants: true,
-        xhtml: false
-    });
-
-    let finalContent;
-    if (role === 'assistant') {
-        finalContent = marked.parse(processedContent);
-    } else {
-        finalContent = processedContent.replace(/\n/g, '<br>');
-    }
-
-    messageDiv.innerHTML = `
+        messageDiv.innerHTML = `
         <div class="message-content">
             <div class="message-bubble ${role === 'assistant' ? 'markdown-content' : ''}">
                 ${finalContent}
@@ -2984,98 +2968,145 @@ function addMessageToUIWithPlayers(role, content, videos) {
         </div>
     `;
 
-    // Add mobile responsive handling
-    if (window.innerWidth <= 768) {
-        messageDiv.style.maxWidth = '95%';
-        
-        const iframes = messageDiv.querySelectorAll('iframe');
-        iframes.forEach(iframe => {
-            iframe.style.width = '100%';
-            iframe.style.height = '250px';
-        });
-    }
-
-    setupMessageActions(messageDiv, content, role);
-    elements.chatMessages.appendChild(messageDiv);
-    elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-}
-
-// Add this function to youtubeFeatures object
-youtubeFeatures.playVideoInline = function(videoId, buttonElement) {
-    const container = buttonElement.closest('.youtube-play-button-container');
-    if (container) {
-        // Replace the button container with the video player
-        container.innerHTML = this.createVideoPlayer(videoId, { autoplay: true });
-        
-        // Scroll the video into view
-        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-};
-
-/**
- * Handle YouTube video analysis with player
- */
-async function handleYouTubeAnalysis(userMessage) {
-    showTypingIndicator();
-
-    try {
+        // Add mobile responsive handling
         if (window.innerWidth <= 768) {
-            showNotification('Analyzing YouTube video...', 'info');
+            messageDiv.style.maxWidth = '95%';
+
+            const iframes = messageDiv.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                iframe.style.width = '100%';
+                iframe.style.height = '250px';
+            });
         }
 
-        const videoId = youtubeFeatures.extractVideoId(userMessage);
+        // After adding to DOM, process the video players
+        elements.chatMessages.appendChild(messageDiv);
 
-        if (!videoId) {
-            removeTypingIndicator();
-            const errorMessage = 'I couldn\'t extract the video ID from that YouTube URL. Please make sure it\'s a valid YouTube link.';
-            addMessageToUI('assistant', errorMessage);
-            saveMessageToConversation('assistant', errorMessage);
-            return;
-        }
-
-        const videoDetails = await youtubeFeatures.getVideoDetails(videoId);
-
-        if (!videoDetails) {
-            removeTypingIndicator();
-            const errorMessage = 'I couldn\'t retrieve details for that YouTube video. It might be private or unavailable.';
-            addMessageToUI('assistant', errorMessage);
-            saveMessageToConversation('assistant', errorMessage);
-            return;
-        }
-
-        // Create player for the analyzed video
-        const videoPlayer = youtubeFeatures.createVideoPlayer(videoId, { 
-            height: window.innerWidth <= 768 ? '250' : '400' 
+        // Process any embedded players
+        const playerEmbeds = messageDiv.querySelectorAll('.youtube-player-embed');
+        playerEmbeds.forEach(embed => {
+            const videoId = embed.dataset.videoId;
+            embed.innerHTML = youtubeFeatures.createVideoPlayer(videoId);
         });
 
-        const formattedDetails = youtubeFeatures.formatVideoDetails(videoDetails);
-        const analysisPrompt = `Analyze this YouTube video and provide insights, key takeaways, and recommendations:\n\n${formattedDetails}`;
-        const aiAnalysis = await getAIResponse(analysisPrompt);
+        setupMessageActions(messageDiv, content, role);
+        elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 
-        removeTypingIndicator();
+    }
 
-        const fullResponse = `## 🎥 Video Player\n\n[PLAYER:${videoId}]\n\n${formattedDetails}\n\n---\n\n## 🤖 AI Analysis\n\n${aiAnalysis}`;
-        
-        // Add message with video player
-        addMessageToUIWithPlayer('assistant', fullResponse, videoId);
-        saveMessageToConversation('assistant', fullResponse);
+    // Add these global functions that can be called from onclick attributes
 
-        if (window.innerWidth <= 768) {
-            showNotification('Video analysis completed!', 'success');
+    /**
+     * Play YouTube video inline
+     */
+    window.playYouTubeVideo = function (videoId, buttonElement) {
+        const container = buttonElement.closest('.youtube-play-button-container');
+        if (container) {
+            // Replace the button container with the video player
+            container.innerHTML = youtubeFeatures.createVideoPlayer(videoId, { autoplay: true });
+
+            // Scroll the video into view
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+    };
 
-    } catch (error) {
-        console.error('YouTube analysis error:', error);
-        removeTypingIndicator();
-        const errorMessage = 'Sorry, I encountered an error while analyzing that YouTube video. Please try again.';
-        addMessageToUI('assistant', errorMessage);
-        saveMessageToConversation('assistant', errorMessage);
+    /**
+     * Open video in YouTube
+     */
+    window.openYouTubeVideo = function (videoId) {
+        const url = `https://www.youtube.com/watch?v=${videoId}`;
+        window.open(url, '_blank');
+    };
 
-        if (window.innerWidth <= 768) {
-            showNotification('Video analysis failed', 'error');
+    /**
+     * Copy video URL to clipboard
+     */
+    window.copyYouTubeUrl = function (videoId) {
+        const url = `https://www.youtube.com/watch?v=${videoId}`;
+        navigator.clipboard.writeText(url).then(() => {
+            showNotification('Video URL copied to clipboard', 'success');
+        }).catch(() => {
+            showNotification('Failed to copy URL', 'error');
+        });
+    };
+
+
+    // Add this function to youtubeFeatures object
+    youtubeFeatures.playVideoInline = function (videoId, buttonElement) {
+        const container = buttonElement.closest('.youtube-play-button-container');
+        if (container) {
+            // Replace the button container with the video player
+            container.innerHTML = this.createVideoPlayer(videoId, { autoplay: true });
+
+            // Scroll the video into view
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    };
+
+    /**
+     * Handle YouTube video analysis with player
+     */
+    async function handleYouTubeAnalysis(userMessage) {
+        showTypingIndicator();
+
+        try {
+            if (window.innerWidth <= 768) {
+                showNotification('Analyzing YouTube video...', 'info');
+            }
+
+            const videoId = youtubeFeatures.extractVideoId(userMessage);
+
+            if (!videoId) {
+                removeTypingIndicator();
+                const errorMessage = 'I couldn\'t extract the video ID from that YouTube URL. Please make sure it\'s a valid YouTube link.';
+                addMessageToUI('assistant', errorMessage);
+                saveMessageToConversation('assistant', errorMessage);
+                return;
+            }
+
+            const videoDetails = await youtubeFeatures.getVideoDetails(videoId);
+
+            if (!videoDetails) {
+                removeTypingIndicator();
+                const errorMessage = 'I couldn\'t retrieve details for that YouTube video. It might be private or unavailable.';
+                addMessageToUI('assistant', errorMessage);
+                saveMessageToConversation('assistant', errorMessage);
+                return;
+            }
+
+            // Create player for the analyzed video
+            const videoPlayer = youtubeFeatures.createVideoPlayer(videoId, {
+                height: window.innerWidth <= 768 ? '250' : '400'
+            });
+
+            const formattedDetails = youtubeFeatures.formatVideoDetails(videoDetails);
+            const analysisPrompt = `Analyze this YouTube video and provide insights, key takeaways, and recommendations:\n\n${formattedDetails}`;
+            const aiAnalysis = await getAIResponse(analysisPrompt);
+
+            removeTypingIndicator();
+
+            const fullResponse = `## 🎥 Video Player\n\n[PLAYER:${videoId}]\n\n${formattedDetails}\n\n---\n\n## 🤖 AI Analysis\n\n${aiAnalysis}`;
+
+            // Add message with video player
+            addMessageToUIWithPlayer('assistant', fullResponse, videoId);
+            saveMessageToConversation('assistant', fullResponse);
+
+            if (window.innerWidth <= 768) {
+                showNotification('Video analysis completed!', 'success');
+            }
+
+        } catch (error) {
+            console.error('YouTube analysis error:', error);
+            removeTypingIndicator();
+            const errorMessage = 'Sorry, I encountered an error while analyzing that YouTube video. Please try again.';
+            addMessageToUI('assistant', errorMessage);
+            saveMessageToConversation('assistant', errorMessage);
+
+            if (window.innerWidth <= 768) {
+                showNotification('Video analysis failed', 'error');
+            }
         }
     }
-}
 
     /**
      * Get AI response for YouTube content
@@ -3329,34 +3360,34 @@ async function handleYouTubeAnalysis(userMessage) {
             recognition.start();
         },
 
-// Update your mobile action popup handlers
+        // Update your mobile action popup handlers
 
-async handleYouTubeSearch() {
-    try {
-        const query = await showPopup({
-            type: 'prompt',
-            title: 'Search YouTube',
-            message: 'Enter your search query:',
-            placeholder: 'e.g., "play AI tutorials"',
-            confirmText: 'Search'
-        });
+        async handleYouTubeSearch() {
+            try {
+                const query = await showPopup({
+                    type: 'prompt',
+                    title: 'Search YouTube',
+                    message: 'Enter your search query:',
+                    placeholder: 'e.g., "play AI tutorials"',
+                    confirmText: 'Search'
+                });
 
-        if (query && typeof query === 'string' && query.trim()) {
-            // Add "play" keyword to enable video player
-            const searchText = query.toLowerCase().includes('play') ? 
-                query.trim() : `play ${query.trim()}`;
-            elements.chatInput.value = `Search YouTube for ${searchText}`;
-            sendMessage();
-        } else if (query === null || query === undefined) {
-            console.log('User cancelled YouTube search');
-        } else {
-            showNotification('Please enter a valid search query', 'warning');
-        }
-    } catch (error) {
-        console.error('Error in YouTube search handler:', error);
-        showNotification('Error opening search dialog', 'error');
-    }
-},
+                if (query && typeof query === 'string' && query.trim()) {
+                    // Add "play" keyword to enable video player
+                    const searchText = query.toLowerCase().includes('play') ?
+                        query.trim() : `play ${query.trim()}`;
+                    elements.chatInput.value = `Search YouTube for ${searchText}`;
+                    sendMessage();
+                } else if (query === null || query === undefined) {
+                    console.log('User cancelled YouTube search');
+                } else {
+                    showNotification('Please enter a valid search query', 'warning');
+                }
+            } catch (error) {
+                console.error('Error in YouTube search handler:', error);
+                showNotification('Error opening search dialog', 'error');
+            }
+        },
 
         async handleYouTubeAnalyze() {
             try {
