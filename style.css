@@ -2276,6 +2276,13 @@ body.light-theme .user .message-bubble {
     .section-title {
         margin-left: 50px;
         font-size: 1rem;
+            max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    
+    /* Add a tooltip on hover to show full name */
+    cursor: help;
     }
 
     .chat-input-wrapper {
