@@ -103,7 +103,6 @@ document.addEventListener('DOMContentLoaded', function () {
         loadSavedState();
         initializeTheme();
         initParticles();
-                setupEventListeners();
 
         // Handle conversation loading
         if (state.settings.saveHistory) {
@@ -150,6 +149,8 @@ document.addEventListener('DOMContentLoaded', function () {
             elements.chatMessages.innerHTML = '';
             elements.sectionTitle.textContent = "Start a new conversation";
         }
+
+        setupEventListeners();
     }
 
     /**
