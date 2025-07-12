@@ -3034,3 +3034,312 @@ body.light-theme .markdown-content th {
         right: -1px;
     }
 }
+
+/* Add these styles to your existing CSS file */
+
+/* Mobile Action Popup Styles */
+.mobile-action-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.mobile-action-popup.active {
+    display: flex;
+    opacity: 1;
+}
+
+.mobile-action-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.mobile-action-content {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border: var(--glass-border);
+    border-bottom: none;
+    box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.3);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.mobile-action-popup.active .mobile-action-content {
+    transform: translateY(0);
+}
+
+.mobile-action-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: var(--glass-border);
+    position: sticky;
+    top: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 10;
+}
+
+.mobile-action-header h4 {
+    margin: 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+}
+
+.mobile-action-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: var(--transition);
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-action-close:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+    transform: rotate(90deg);
+}
+
+.mobile-action-buttons {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.mobile-action-btn {
+    background: var(--glass-bg);
+    border: var(--glass-border);
+    border-radius: var(--element-radius);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: left;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.mobile-action-btn:hover,
+.mobile-action-btn:active {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--glow);
+}
+
+.mobile-action-btn:active {
+    transform: translateY(0);
+}
+
+.mobile-action-btn i {
+    font-size: 1.2rem;
+    color: var(--accent-color);
+    width: 24px;
+    text-align: center;
+}
+
+.mobile-action-btn span {
+    flex: 1;
+}
+
+/* Special styling for YouTube buttons in mobile popup */
+.mobile-action-btn.youtube-feature-indicator i {
+    color: #FF0000;
+}
+
+.mobile-action-btn#mobile-voice-input i {
+    color: #10B981;
+}
+
+.mobile-action-btn#mobile-attach-file i {
+    color: #8B5CF6;
+}
+
+/* Mobile more button - only visible on small screens */
+.mobile-more-btn {
+    display: none;
+}
+
+/* Desktop action buttons - hidden on mobile */
+.desktop-action-btn {
+    display: flex;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 450px) {
+    /* Hide desktop action buttons */
+    .desktop-action-btn {
+        display: none;
+    }
+    
+    /* Show mobile more button */
+    .mobile-more-btn {
+        display: flex;
+        background: var(--primary-gradient);
+        color: white;
+        box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+    }
+    
+    .mobile-more-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--glow-strong);
+    }
+    
+    /* Adjust input container for mobile */
+    .input-actions {
+        gap: 0.3rem;
+    }
+    
+    .input-action-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 0.9rem;
+    }
+    
+    .send-btn {
+        width: 42px;
+        height: 42px;
+        margin-left: 0.3rem;
+    }
+    
+    /* Adjust mobile popup for very small screens */
+    .mobile-action-content {
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+    }
+    
+    .mobile-action-header {
+        padding: 0.8rem 1rem;
+    }
+    
+    .mobile-action-header h4 {
+        font-size: 1rem;
+    }
+    
+    .mobile-action-buttons {
+        padding: 0.8rem;
+    }
+    
+    .mobile-action-btn {
+        padding: 0.8rem 1rem;
+        font-size: 0.9rem;
+        border-radius: 10px;
+    }
+    
+    .mobile-action-btn i {
+        font-size: 1.1rem;
+        width: 22px;
+    }
+}
+
+/* Very small screens (below 360px) */
+@media (max-width: 360px) {
+    .mobile-action-header {
+        padding: 0.7rem 0.8rem;
+    }
+    
+    .mobile-action-buttons {
+        padding: 0.7rem;
+    }
+    
+    .mobile-action-btn {
+        padding: 0.7rem 0.8rem;
+        font-size: 0.85rem;
+        gap: 0.8rem;
+    }
+    
+    .mobile-action-btn i {
+        font-size: 1rem;
+        width: 20px;
+    }
+}
+
+/* Active states for mobile buttons */
+.mobile-action-btn.active {
+    background: var(--accent-light);
+    color: var(--accent-color);
+    box-shadow: var(--glow);
+}
+
+.mobile-action-btn.active i {
+    color: var(--accent-color);
+}
+
+/* Animation for mobile popup appearance */
+@keyframes slideUpMobile {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.mobile-action-popup.active .mobile-action-content {
+    animation: slideUpMobile 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Safe area handling for devices with notches */
+@supports (padding: max(0px)) {
+    .mobile-action-content {
+        padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+}
+
+/* Prevent scrolling when popup is open */
+body.mobile-popup-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}
+
+/* Light theme adjustments */
+body.light-theme .mobile-action-overlay {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+body.light-theme .mobile-action-content {
+    box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.1);
+}

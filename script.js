@@ -2354,6 +2354,8 @@ function createNewConversation() {
 
         setupYouTubeEventListeners();
 
+         mobileActionPopup.init();
+
     }
 
 // YouTube Integration Functions
@@ -2700,13 +2702,211 @@ function sendMessage() {
 
 // Add event listeners for YouTube buttons
 function setupYouTubeEventListeners() {
-    // YouTube search button
-    document.getElementById('youtube-search').addEventListener('click', async () => {
+    // Desktop YouTube search button
+    const desktopSearchBtn = document.getElementById('youtube-search');
+    if (desktopSearchBtn) {
+        desktopSearchBtn.addEventListener('click', async () => {
+            const query = await showPopup({
+                type: 'prompt',
+                title: 'Search YouTube',
+                message: 'Enter your search query:',
+                placeholder: window.innerWidth <= 768 ? 'e.g., "AI tutorials"' : 'e.g., "machine learning tutorials"',
+                confirmText: 'Search'
+            });
+            
+            if (query?.trim()) {
+                elements.chatInput.value = `Search YouTube for ${query.trim()}`;
+                sendMessage();
+            }
+        });
+    }
+    
+    // Desktop YouTube analyze button
+    const desktopAnalyzeBtn = document.getElementById('youtube-analyze');
+    if (desktopAnalyzeBtn) {
+        desktopAnalyzeBtn.addEventListener('click', async () => {
+            const url = await showPopup({
+                type: 'prompt',
+                title: 'Analyze YouTube Video',
+                message: 'Enter the YouTube video URL:',
+                placeholder: window.innerWidth <= 768 ? 'YouTube URL...' : 'https://www.youtube.com/watch?v=...',
+                confirmText: 'Analyze'
+            });
+            
+            if (url?.trim()) {
+                elements.chatInput.value = url.trim();
+                sendMessage();
+            }
+        });
+    }
+    
+    // Add touch event handling for mobile buttons
+    if ('ontouchstart' in window) {
+        const mobileButtons = [
+            'mobile-youtube-search',
+            'mobile-youtube-analyze',
+            'mobile-voice-input',
+            'mobile-attach-file'
+        ];
+        
+        mobileButtons.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.addEventListener('touchstart', function(e) {
+                    this.style.transform = 'translateY(0)';
+                    this.style.background = 'var(--bg-hover)';
+                });
+                
+                btn.addEventListener('touchend', function(e) {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.background = '';
+                });
+            }
+        });
+    }
+}
+
+const desktopVoiceBtn = document.getElementById('voice-input');
+if (desktopVoiceBtn) {
+    desktopVoiceBtn.addEventListener('click', () => {
+        // Your existing voice input logic here
+        mobileActionPopup.handleVoiceInput();
+    });
+}
+// Mobile Action Popup Functions
+const mobileActionPopup = {
+    popup: null,
+    overlay: null,
+    content: null,
+    isOpen: false,
+    
+    init() {
+        this.popup = document.getElementById('mobile-action-popup');
+        this.overlay = document.getElementById('mobile-action-overlay');
+        this.content = document.querySelector('.mobile-action-content');
+        
+        // Setup event listeners
+        this.setupEventListeners();
+    },
+    
+    setupEventListeners() {
+        // More button click
+        document.getElementById('mobile-more-btn').addEventListener('click', () => {
+            this.open();
+        });
+        
+        // Close button
+        document.getElementById('mobile-action-close').addEventListener('click', () => {
+            this.close();
+        });
+        
+        // Overlay click
+        this.overlay.addEventListener('click', () => {
+            this.close();
+        });
+        
+        // Prevent content clicks from closing popup
+        this.content.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+        
+        // Mobile action buttons
+        document.getElementById('mobile-attach-file').addEventListener('click', () => {
+            this.close();
+            // Trigger the same functionality as desktop attach button
+            showNotification('File attachment coming soon', 'info');
+        });
+        
+        document.getElementById('mobile-voice-input').addEventListener('click', () => {
+            this.close();
+            // Trigger voice input functionality
+            this.handleVoiceInput();
+        });
+        
+        document.getElementById('mobile-youtube-search').addEventListener('click', () => {
+            this.close();
+            // Trigger YouTube search
+            this.handleYouTubeSearch();
+        });
+        
+        document.getElementById('mobile-youtube-analyze').addEventListener('click', () => {
+            this.close();
+            // Trigger YouTube analysis
+            this.handleYouTubeAnalyze();
+        });
+        
+        // Handle escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) {
+                this.close();
+            }
+        });
+    },
+    
+    open() {
+        this.popup.classList.add('active');
+        document.body.classList.add('mobile-popup-open');
+        this.isOpen = true;
+        
+        // Focus management
+        this.content.focus();
+    },
+    
+    close() {
+        this.popup.classList.remove('active');
+        document.body.classList.remove('mobile-popup-open');
+        this.isOpen = false;
+        
+        // Return focus to more button
+        document.getElementById('mobile-more-btn').focus();
+    },
+    
+    async handleVoiceInput() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            showNotification('Speech recognition not supported in your browser', 'error');
+            return;
+        }
+        
+        const recognition = new SpeechRecognition();
+        const voiceBtn = document.getElementById('mobile-voice-input');
+        
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        
+        recognition.onstart = () => {
+            voiceBtn.classList.add('active');
+            showNotification('Listening...', 'info');
+        };
+        
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            elements.chatInput.value = transcript;
+            resizeInput();
+            showNotification('Voice input received', 'success');
+        };
+        
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error', event.error);
+            voiceBtn.classList.remove('active');
+            showNotification(`Error: ${event.error}`, 'error');
+        };
+        
+        recognition.onend = () => {
+            voiceBtn.classList.remove('active');
+        };
+        
+        recognition.start();
+    },
+    
+    async handleYouTubeSearch() {
         const query = await showPopup({
             type: 'prompt',
             title: 'Search YouTube',
             message: 'Enter your search query:',
-            placeholder: window.innerWidth <= 768 ? 'e.g., "AI tutorials"' : 'e.g., "machine learning tutorials"',
+            placeholder: 'e.g., "AI tutorials"',
             confirmText: 'Search'
         });
         
@@ -2714,15 +2914,14 @@ function setupYouTubeEventListeners() {
             elements.chatInput.value = `Search YouTube for ${query.trim()}`;
             sendMessage();
         }
-    });
+    },
     
-    // YouTube analyze button
-    document.getElementById('youtube-analyze').addEventListener('click', async () => {
+    async handleYouTubeAnalyze() {
         const url = await showPopup({
             type: 'prompt',
             title: 'Analyze YouTube Video',
             message: 'Enter the YouTube video URL:',
-            placeholder: window.innerWidth <= 768 ? 'YouTube URL...' : 'https://www.youtube.com/watch?v=...',
+            placeholder: 'YouTube URL...',
             confirmText: 'Analyze'
         });
         
@@ -2730,27 +2929,8 @@ function setupYouTubeEventListeners() {
             elements.chatInput.value = url.trim();
             sendMessage();
         }
-    });
-    
-    // Add touch event handling for mobile
-    if ('ontouchstart' in window) {
-        document.getElementById('youtube-search').addEventListener('touchstart', function(e) {
-            this.style.transform = 'scale(0.95)';
-        });
-        
-        document.getElementById('youtube-search').addEventListener('touchend', function(e) {
-            this.style.transform = 'scale(1)';
-        });
-        
-        document.getElementById('youtube-analyze').addEventListener('touchstart', function(e) {
-            this.style.transform = 'scale(0.95)';
-        });
-        
-        document.getElementById('youtube-analyze').addEventListener('touchend', function(e) {
-            this.style.transform = 'scale(1)';
-        });
     }
-}
+};
 
     // Initialize the application
     init();
