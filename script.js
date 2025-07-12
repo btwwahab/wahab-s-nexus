@@ -2449,10 +2449,18 @@ const youtubeFeatures = {
             modestbranding: playerOptions.modestbranding ? 1 : 0,
             rel: playerOptions.rel ? 1 : 0,
             showinfo: playerOptions.showinfo ? 1 : 0,
-            origin: window.location.origin
+            origin: window.location.origin,
+             enablejsapi: 1,
+        fs: 1,
+        iv_load_policy: 3, // Minimize annotations
+        disablekb: 0,
+        playsinline: 1,
+        // Privacy-enhanced mode
+        host: 'https://www.youtube-nocookie.com'
         });
 
         embedUrl += params.toString();
+        embedUrl = embedUrl.replace('youtube.com', 'youtube-nocookie.com');
 
         // Adjust height for mobile
         const isMobile = window.innerWidth <= 768;
