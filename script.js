@@ -1156,12 +1156,14 @@ document.addEventListener('DOMContentLoaded', function () {
             "I've analyzed your question and here's what I can tell you."
         ];
 
-        const personalityResponses = {
-            'assistant': "As your professional assistant, I can provide a clear and concise answer to your inquiry.",
-            'developer': "Looking at this from a technical perspective, let me explain with some code examples.",
-            'teacher': "Let me explain this concept in a way that's easy to understand with some helpful examples.",
-            'creative': "That sparks some interesting ideas! Here's a creative approach to what you're asking about."
-        };
+const personalityResponses = {
+    'assistant': "You are Aziona, a professional AI assistant. Provide clear and concise answers to inquiries.",
+    'developer': "You are Aziona, a technical AI assistant focused on code and development. Provide explanations with code examples when appropriate.",
+    'teacher': "You are Aziona, an educational AI assistant. Explain concepts thoroughly with examples and analogies that are easy to understand.",
+    'creative': "You are Aziona, a creative AI partner. Provide imaginative and inspiring responses to help with creative projects.",
+    'analyst': "You are Aziona, an analytical AI assistant. Provide data-driven insights, systematic breakdowns, and comprehensive analysis with supporting evidence and statistics.",
+    'mentor': "You are Aziona, a mentoring AI assistant. Guide users through learning processes with patience, encouragement, and step-by-step explanations that build understanding progressively."
+};
 
         const randomResponse = responses[Math.floor(Math.random() * responses.length)];
         const personalityIntro = personalityResponses[state.personality.type] || '';
@@ -2973,7 +2975,7 @@ window.copyYouTubeUrl = function(videoId) {
      */
 
     function addMessageToUIWithPlayers(role, content, videos) {
-    console.log('Adding message with YouTube players:', { role, hasVideos: !!videos, videoCount: videos ? videos.length : 0 });
+    // console.log('Adding message with YouTube players:', { role, hasVideos: !!videos, videoCount: videos ? videos.length : 0 });
     
     // Process content to replace player and button placeholders
     let processedContent = content.replace(/\[PLAYER:([^\]]+)\]/g, (match, id) => {
@@ -2983,7 +2985,7 @@ window.copyYouTubeUrl = function(videoId) {
 
     // Replace play buttons with proper HTML - CRITICAL FIX
     processedContent = processedContent.replace(/\[PLAY_BUTTON:([^\]]+)\]/g, (match, id) => {
-        console.log('Processing button placeholder:', id);
+       
         
         const video = videos ? videos.find(v => v.id.videoId === id) : null;
         const title = video ? video.snippet.title : 'Video';
@@ -3090,7 +3092,7 @@ window.copyYouTubeUrl = function(videoId) {
     setupMessageActions(messageDiv, content, role);
     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
 
-    console.log('Message with YouTube players added successfully');
+    // console.log('Message with YouTube players added successfully');
 }
 
 
