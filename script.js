@@ -391,17 +391,59 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Populate messages
         if (conversation.messages?.length) {
-            conversation.messages.forEach(msg => {
-                // Add to UI
+        conversation.messages.forEach(msg => {
+            // Check if message contains YouTube content
+            const hasYouTubeButtons = msg.content.includes('[PLAY_BUTTON:') || msg.content.includes('[PLAYER:');
+            const hasYouTubeSearch = msg.content.includes('📝 Search Results') && msg.content.includes('videos');
+            
+            if (hasYouTubeButtons || hasYouTubeSearch) {
+                // Extract video IDs from the message
+                const videoIds = [];
+                const buttonMatches = msg.content.match(/\[PLAY_BUTTON:([^\]]+)\]/g);
+                const playerMatches = msg.content.match(/\[PLAYER:([^\]]+)\]/g);
+                
+                if (buttonMatches) {
+                    buttonMatches.forEach(match => {
+                        const videoId = match.match(/\[PLAY_BUTTON:([^\]]+)\]/)[1];
+                        videoIds.push(videoId);
+                    });
+                }
+                
+                if (playerMatches) {
+                    playerMatches.forEach(match => {
+                        const videoId = match.match(/\[PLAYER:([^\]]+)\]/)[1];
+                        videoIds.push(videoId);
+                    });
+                }
+                
+                // Create mock video objects for processing
+                const mockVideos = videoIds.map(id => ({
+                    id: { videoId: id },
+                    snippet: {
+                        title: 'Video',
+                        channelTitle: 'Channel',
+                        description: '',
+                        thumbnails: {
+                            default: { url: `https://img.youtube.com/vi/${id}/default.jpg` },
+                            medium: { url: `https://img.youtube.com/vi/${id}/mqdefault.jpg` }
+                        }
+                    }
+                }));
+                
+                // Use the special function for YouTube messages
+                addMessageToUIWithPlayers(msg.role, msg.content, mockVideos);
+            } else {
+                // Regular message
                 addMessageToUI(msg.role, msg.content);
+            }
 
-                // Add to API context history
-                chatHistory.push({
-                    role: msg.role,
-                    content: msg.content
-                });
+            // Add to API context history
+            chatHistory.push({
+                role: msg.role,
+                content: msg.content
             });
-        }
+        });
+    }
 
         // Save active conversation to localStorage
         if (state.settings.saveHistory) {
@@ -2929,27 +2971,32 @@ window.copyYouTubeUrl = function(videoId) {
      * @param {string} content - Message content
      * @param {Array} videos - Array of video objects
      */
-// Replace your addMessageToUIWithPlayers function:
 
-function addMessageToUIWithPlayers(role, content, videos) {
+    function addMessageToUIWithPlayers(role, content, videos) {
+    console.log('Adding message with YouTube players:', { role, hasVideos: !!videos, videoCount: videos ? videos.length : 0 });
+    
     // Process content to replace player and button placeholders
     let processedContent = content.replace(/\[PLAYER:([^\]]+)\]/g, (match, id) => {
+        console.log('Processing player placeholder:', id);
         return `<div class="youtube-player-embed" data-video-id="${id}"></div>`;
     });
 
-    // Replace play buttons with proper HTML
+    // Replace play buttons with proper HTML - CRITICAL FIX
     processedContent = processedContent.replace(/\[PLAY_BUTTON:([^\]]+)\]/g, (match, id) => {
-        const video = videos ? videos.find(v => v.id.videoId === id) : null;
-        const title = video ? video.snippet.title : 'Unknown Video';
-        const thumbnail = video ? (video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url) : '';
+        console.log('Processing button placeholder:', id);
         
-        return `<div class="youtube-video-item" data-video-id="${id}">
-            ${thumbnail ? `<img src="${thumbnail}" alt="${title}" class="video-thumbnail" style="max-width: 200px; border-radius: 8px; margin: 8px 0;">` : ''}
-            <div class="youtube-play-button-container">
-                <button class="youtube-play-btn" onclick="playYouTubeVideo('${id}', this)" data-video-id="${id}">
+        const video = videos ? videos.find(v => v.id.videoId === id) : null;
+        const title = video ? video.snippet.title : 'Video';
+        const thumbnail = video ? (video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url) : `https://img.youtube.com/vi/${id}/mqdefault.jpg`;
+        
+        // Create inline styles to ensure proper display
+        return `<div class="youtube-video-item" data-video-id="${id}" style="background: var(--glass-bg, rgba(255, 255, 255, 0.1)); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px; padding: 1rem; margin: 1rem 0; backdrop-filter: blur(10px);">
+            <img src="${thumbnail}" alt="${title}" class="video-thumbnail" style="max-width: 200px; width: 100%; height: auto; border-radius: 8px; margin: 8px 0; display: block;">
+            <div class="youtube-play-button-container" style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                <button class="youtube-play-btn" onclick="playYouTubeVideo('${id}', this)" data-video-id="${id}" style="background: linear-gradient(135deg, #FF0000, #CC0000); color: white; border: none; padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; transition: all 0.3s ease;">
                     <i class="fas fa-play"></i> Play Video
                 </button>
-                <button class="youtube-action-btn secondary" onclick="openYouTubeVideo('${id}')">
+                <button class="youtube-action-btn secondary" onclick="openYouTubeVideo('${id}')" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary, white); border: 1px solid rgba(255, 255, 255, 0.2); padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; transition: all 0.3s ease;">
                     <i class="fab fa-youtube"></i> Open in YouTube
                 </button>
             </div>
@@ -2959,6 +3006,7 @@ function addMessageToUIWithPlayers(role, content, videos) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
 
+    // Configure marked.js with proper settings
     marked.setOptions({
         renderer: new marked.Renderer(),
         highlight: function (code, lang) {
@@ -2968,7 +3016,7 @@ function addMessageToUIWithPlayers(role, content, videos) {
         pedantic: false,
         gfm: true,
         breaks: true,
-        sanitize: false, // Important: don't sanitize so HTML can render
+        sanitize: false, // CRITICAL: Must be false to allow HTML
         smartypants: true,
         xhtml: false
     });
@@ -3012,6 +3060,18 @@ function addMessageToUIWithPlayers(role, content, videos) {
             thumb.style.maxWidth = '100%';
             thumb.style.height = 'auto';
         });
+        
+        const buttonContainers = messageDiv.querySelectorAll('.youtube-play-button-container');
+        buttonContainers.forEach(container => {
+            container.style.flexDirection = 'column';
+            container.style.gap = '0.3rem';
+        });
+
+        const buttons = messageDiv.querySelectorAll('.youtube-play-btn, .youtube-action-btn');
+        buttons.forEach(button => {
+            button.style.width = '100%';
+            button.style.justifyContent = 'center';
+        });
     }
 
     // Add to DOM FIRST
@@ -3021,13 +3081,16 @@ function addMessageToUIWithPlayers(role, content, videos) {
     const playerEmbeds = messageDiv.querySelectorAll('.youtube-player-embed');
     playerEmbeds.forEach(embed => {
         const videoId = embed.dataset.videoId;
-        if (videoId) {
+        if (videoId && youtubeFeatures && youtubeFeatures.createVideoPlayer) {
+            console.log('Creating player for video:', videoId);
             embed.innerHTML = youtubeFeatures.createVideoPlayer(videoId);
         }
     });
 
     setupMessageActions(messageDiv, content, role);
     elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
+
+    console.log('Message with YouTube players added successfully');
 }
 
 

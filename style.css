@@ -3820,3 +3820,93 @@ body.light-theme .mobile-action-content {
     box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.1);
 }
 
+/* Add these styles to ensure YouTube buttons display properly */
+
+.youtube-video-item {
+    background: var(--glass-bg);
+    border: var(--glass-border);
+    border-radius: var(--element-radius);
+    padding: 1rem;
+    margin: 1rem 0;
+    backdrop-filter: blur(10px);
+}
+
+.youtube-video-item .video-thumbnail {
+    display: block;
+    max-width: 200px;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 8px 0;
+}
+
+.youtube-play-button-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.youtube-play-btn {
+    background: linear-gradient(135deg, #FF0000, #CC0000) !important;
+    color: white !important;
+    border: none !important;
+    padding: 0.6rem 1rem !important;
+    border-radius: var(--element-radius) !important;
+    cursor: pointer !important;
+    transition: var(--transition) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    font-size: 0.9rem !important;
+}
+
+.youtube-play-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3);
+}
+
+.youtube-action-btn {
+    background: var(--glass-bg) !important;
+    color: var(--text-primary) !important;
+    border: var(--glass-border) !important;
+    padding: 0.6rem 1rem !important;
+    border-radius: var(--element-radius) !important;
+    cursor: pointer !important;
+    transition: var(--transition) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    font-size: 0.9rem !important;
+}
+
+.youtube-action-btn:hover {
+    background: var(--bg-hover) !important;
+    transform: translateY(-2px);
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+    .youtube-video-item {
+        padding: 0.8rem;
+        margin: 0.8rem 0;
+    }
+    
+    .youtube-video-item .video-thumbnail {
+        max-width: 100%;
+        margin: 0.5rem 0;
+    }
+    
+    .youtube-play-button-container {
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    
+    .youtube-play-btn,
+    .youtube-action-btn {
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 0.5rem !important;
+        font-size: 0.85rem !important;
+    }
+}
