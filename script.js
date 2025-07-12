@@ -2427,26 +2427,32 @@ const youtubeFeatures = {
     formatVideoResults(videos) {
         if (!videos.length) return 'No videos found.';
         
+        const isMobile = window.innerWidth <= 768;
         let result = '## 🎥 YouTube Search Results\n\n';
         
         videos.forEach((video, index) => {
             const title = video.snippet.title;
             const channel = video.snippet.channelTitle;
-            const description = video.snippet.description.substring(0, 100) + '...';
+            const description = video.snippet.description.substring(0, isMobile ? 80 : 100) + '...';
             const videoUrl = `https://www.youtube.com/watch?v=${video.id.videoId}`;
             const thumbnail = video.snippet.thumbnails.medium.url;
             
             result += `### ${index + 1}. [${title}](${videoUrl})\n`;
             result += `**Channel:** ${channel}\n`;
             result += `**Description:** ${description}\n`;
-            result += `![Thumbnail](${thumbnail})\n\n`;
+            
+            // Only show thumbnails on larger screens to save mobile data
+            if (!isMobile) {
+                result += `![Thumbnail](${thumbnail})\n`;
+            }
+            result += '\n';
         });
         
         return result;
     },
 
     /**
-     * Format video details for analysis
+     * Format video details for analysis with mobile optimization
      */
     formatVideoDetails(video) {
         if (!video) return 'Video details not available.';
@@ -2454,6 +2460,7 @@ const youtubeFeatures = {
         const snippet = video.snippet;
         const statistics = video.statistics;
         const contentDetails = video.contentDetails;
+        const isMobile = window.innerWidth <= 768;
         
         let result = `## 📊 Video Analysis\n\n`;
         result += `**Title:** ${snippet.title}\n`;
@@ -2463,8 +2470,18 @@ const youtubeFeatures = {
         result += `**Views:** ${parseInt(statistics.viewCount).toLocaleString()}\n`;
         result += `**Likes:** ${parseInt(statistics.likeCount || 0).toLocaleString()}\n`;
         result += `**Comments:** ${parseInt(statistics.commentCount || 0).toLocaleString()}\n\n`;
-        result += `**Description:**\n${snippet.description.substring(0, 500)}${snippet.description.length > 500 ? '...' : ''}\n\n`;
-        result += `**Tags:** ${snippet.tags ? snippet.tags.join(', ') : 'No tags'}\n`;
+        
+        // Truncate description for mobile
+        const descriptionLength = isMobile ? 300 : 500;
+        result += `**Description:**\n${snippet.description.substring(0, descriptionLength)}${snippet.description.length > descriptionLength ? '...' : ''}\n\n`;
+        
+        // Show fewer tags on mobile
+        if (snippet.tags) {
+            const tagsToShow = isMobile ? snippet.tags.slice(0, 5) : snippet.tags;
+            result += `**Tags:** ${tagsToShow.join(', ')}${snippet.tags.length > tagsToShow.length ? '...' : ''}\n`;
+        } else {
+            result += `**Tags:** No tags\n`;
+        }
         
         return result;
     },
@@ -2509,11 +2526,17 @@ async function handleYouTubeSearch(userMessage) {
     showTypingIndicator();
     
     try {
+        // Show mobile-friendly loading message
+        if (window.innerWidth <= 768) {
+            showNotification('Searching YouTube...', 'info');
+        }
+        
         // Extract search query
         const searchQuery = userMessage.replace(/(?:search|find|look for|show me)/i, '').replace(/(?:youtube|videos?|on youtube)/i, '').trim();
         
-        // Search YouTube
-        const videos = await youtubeFeatures.searchVideos(searchQuery, 5);
+        // Search YouTube with mobile-appropriate result count
+        const maxResults = window.innerWidth <= 768 ? 3 : 5;
+        const videos = await youtubeFeatures.searchVideos(searchQuery, maxResults);
         
         if (videos.length === 0) {
             removeTypingIndicator();
@@ -2523,7 +2546,7 @@ async function handleYouTubeSearch(userMessage) {
             return;
         }
         
-        // Format results
+        // Format results with mobile optimization
         const formattedResults = youtubeFeatures.formatVideoResults(videos);
         
         // Get AI analysis of the search results
@@ -2538,12 +2561,22 @@ async function handleYouTubeSearch(userMessage) {
         addMessageToUI('assistant', fullResponse);
         saveMessageToConversation('assistant', fullResponse);
         
+        // Show success notification on mobile
+        if (window.innerWidth <= 768) {
+            showNotification('YouTube search completed!', 'success');
+        }
+        
     } catch (error) {
         console.error('YouTube search error:', error);
         removeTypingIndicator();
         const errorMessage = 'Sorry, I encountered an error while searching YouTube. Please try again.';
         addMessageToUI('assistant', errorMessage);
         saveMessageToConversation('assistant', errorMessage);
+        
+        // Show error notification on mobile
+        if (window.innerWidth <= 768) {
+            showNotification('YouTube search failed', 'error');
+        }
     }
 }
 
@@ -2554,6 +2587,11 @@ async function handleYouTubeAnalysis(userMessage) {
     showTypingIndicator();
     
     try {
+        // Show mobile-friendly loading message
+        if (window.innerWidth <= 768) {
+            showNotification('Analyzing YouTube video...', 'info');
+        }
+        
         // Extract video ID from URL
         const videoId = youtubeFeatures.extractVideoId(userMessage);
         
@@ -2576,7 +2614,7 @@ async function handleYouTubeAnalysis(userMessage) {
             return;
         }
         
-        // Format video analysis
+        // Format video analysis with mobile optimization
         const formattedDetails = youtubeFeatures.formatVideoDetails(videoDetails);
         
         // Get AI insights about the video
@@ -2590,12 +2628,22 @@ async function handleYouTubeAnalysis(userMessage) {
         addMessageToUI('assistant', fullResponse);
         saveMessageToConversation('assistant', fullResponse);
         
+        // Show success notification on mobile
+        if (window.innerWidth <= 768) {
+            showNotification('Video analysis completed!', 'success');
+        }
+        
     } catch (error) {
         console.error('YouTube analysis error:', error);
         removeTypingIndicator();
         const errorMessage = 'Sorry, I encountered an error while analyzing that YouTube video. Please try again.';
         addMessageToUI('assistant', errorMessage);
         saveMessageToConversation('assistant', errorMessage);
+        
+        // Show error notification on mobile
+        if (window.innerWidth <= 768) {
+            showNotification('Video analysis failed', 'error');
+        }
     }
 }
 
@@ -2658,7 +2706,7 @@ function setupYouTubeEventListeners() {
             type: 'prompt',
             title: 'Search YouTube',
             message: 'Enter your search query:',
-            placeholder: 'e.g., "machine learning tutorials"',
+            placeholder: window.innerWidth <= 768 ? 'e.g., "AI tutorials"' : 'e.g., "machine learning tutorials"',
             confirmText: 'Search'
         });
         
@@ -2674,7 +2722,7 @@ function setupYouTubeEventListeners() {
             type: 'prompt',
             title: 'Analyze YouTube Video',
             message: 'Enter the YouTube video URL:',
-            placeholder: 'https://www.youtube.com/watch?v=...',
+            placeholder: window.innerWidth <= 768 ? 'YouTube URL...' : 'https://www.youtube.com/watch?v=...',
             confirmText: 'Analyze'
         });
         
@@ -2683,6 +2731,25 @@ function setupYouTubeEventListeners() {
             sendMessage();
         }
     });
+    
+    // Add touch event handling for mobile
+    if ('ontouchstart' in window) {
+        document.getElementById('youtube-search').addEventListener('touchstart', function(e) {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        document.getElementById('youtube-search').addEventListener('touchend', function(e) {
+            this.style.transform = 'scale(1)';
+        });
+        
+        document.getElementById('youtube-analyze').addEventListener('touchstart', function(e) {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        document.getElementById('youtube-analyze').addEventListener('touchend', function(e) {
+            this.style.transform = 'scale(1)';
+        });
+    }
 }
 
     // Initialize the application
